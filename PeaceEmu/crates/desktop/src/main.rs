@@ -216,6 +216,8 @@ struct DesktopApp {
     frame_cadence: FrameCadence,
     frame_texture: Option<egui::TextureHandle>,
     game_window_open: bool,
+    game_fullscreen: bool,
+    turbo_held: bool,
     video_size: Option<[u32; 2]>,
     media_status: String,
     audio_output: AudioOutput,
@@ -462,6 +464,8 @@ impl DesktopApp {
             frame_cadence: FrameCadence::new(60, 3)?,
             frame_texture: None,
             game_window_open: false,
+            game_fullscreen: false,
+            turbo_held: false,
             video_size: None,
             media_status: "No active session.".to_owned(),
             audio_output: AudioOutput::new(),
@@ -1642,6 +1646,9 @@ impl DesktopApp {
         let video_size = self.video_size;
         let mut close_requested = false;
         let mut lost_focus = false;
+        let mut reset_requested = false;
+        let mut fullscreen_toggle_requested = false;
+        let mut turbo_change = None;
         let mut input_events = Vec::new();
         let mut modifier_snapshot = egui::Modifiers::default();
         let builder = egui::ViewportBuilder::default()
@@ -1668,8 +1675,15 @@ impl DesktopApp {
                         if repeat && pressed {
                             continue;
                         }
-                        if let Some(control) = self.control_for_active_session(key) {
-                            input_events.push((control, pressed));
+                        match key {
+                            egui::Key::F1 if pressed => reset_requested = true,
+                            egui::Key::F11 if pressed => fullscreen_toggle_requested = true,
+                            egui::Key::Tab => turbo_change = Some(pressed),
+                            _ => {
+                                if let Some(control) = self.control_for_active_session(key) {
+                                    input_events.push((control, pressed));
+                                }
+                            }
                         }
                     }
                     egui::Event::WindowFocused(false) => lost_focus = true,
@@ -1699,13 +1713,34 @@ impl DesktopApp {
         });
 
         if lost_focus || close_requested {
+            self.turbo_held = false;
+            self.frame_cadence = FrameCadence::new(60, 3).expect("valid default frame cadence");
             self.modifier_pressed = [false; 4];
             if let Err(error) = self.release_game_inputs() {
                 self.message = format!("Could not release game inputs: {error}");
             }
         } else {
+            if let Some(held) = turbo_change {
+                if self.turbo_held != held {
+                    self.turbo_held = held;
+                    self.frame_cadence = FrameCadence::new(60, if held { 12 } else { 3 })
+                        .expect("valid turbo frame cadence");
+                }
+            }
             self.append_modifier_input_events(modifier_snapshot, &mut input_events);
             self.send_game_input_events(input_events);
+        }
+        if fullscreen_toggle_requested {
+            self.game_fullscreen = !self.game_fullscreen;
+            context.send_viewport_cmd_to(
+                viewport_id,
+                egui::ViewportCommand::Fullscreen(self.game_fullscreen),
+            );
+        }
+        if reset_requested {
+            if let Some(id) = self.controller.active_session() {
+                self.session_action(id, SessionAction::Reset);
+            }
         }
         if close_requested {
             self.game_window_open = false;
@@ -1721,13 +1756,18 @@ impl DesktopApp {
         // the active session has since been deselected.
         self.autosave_dirty_game_saves();
         let now = Instant::now();
-        let elapsed = now.saturating_duration_since(self.last_tick);
+        let mut elapsed = now.saturating_duration_since(self.last_tick);
         self.last_tick = now;
+        if self.turbo_held {
+            elapsed = elapsed.saturating_mul(4);
+        }
 
         if self.active_page == DesktopPage::Game && !self.game_window_open {
             let (events, modifiers) = context.input(|input| (input.events.clone(), input.modifiers));
             let mut input_events = Vec::new();
             let mut lost_focus = false;
+            let mut reset_requested = false;
+            let mut turbo_change = None;
             for event in events {
                 match event {
                     egui::Event::Key {
@@ -1739,8 +1779,14 @@ impl DesktopApp {
                         if repeat && pressed {
                             continue;
                         }
-                        if let Some(control) = self.control_for_active_session(key) {
-                            input_events.push((control, pressed));
+                        match key {
+                            egui::Key::F1 if pressed => reset_requested = true,
+                            egui::Key::Tab => turbo_change = Some(pressed),
+                            _ => {
+                                if let Some(control) = self.control_for_active_session(key) {
+                                    input_events.push((control, pressed));
+                                }
+                            }
                         }
                     }
                     egui::Event::WindowFocused(false) => lost_focus = true,
@@ -1748,13 +1794,27 @@ impl DesktopApp {
                 }
             }
             if lost_focus {
+                self.turbo_held = false;
+                self.frame_cadence = FrameCadence::new(60, 3).expect("valid default frame cadence");
                 self.modifier_pressed = [false; 4];
                 if let Err(error) = self.release_game_inputs() {
                     self.message = error;
                 }
             } else {
+                if let Some(held) = turbo_change {
+                    if self.turbo_held != held {
+                        self.turbo_held = held;
+                        self.frame_cadence = FrameCadence::new(60, if held { 12 } else { 3 })
+                            .expect("valid turbo frame cadence");
+                    }
+                }
                 self.append_modifier_input_events(modifiers, &mut input_events);
                 self.send_game_input_events(input_events);
+            }
+            if reset_requested {
+                if let Some(id) = self.controller.active_session() {
+                    self.session_action(id, SessionAction::Reset);
+                }
             }
         }
 
