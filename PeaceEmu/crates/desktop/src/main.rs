@@ -1200,14 +1200,15 @@ impl DesktopApp {
         if is_running {
             self.session_action(id, SessionAction::Pause);
         }
-        self.load_state_action(id);
         let is_paused = self
             .controller
             .session_summary(id)
             .is_ok_and(|summary| summary.state == emulation_core::runtime::SessionState::Paused);
-        if is_paused {
-            self.session_action(id, SessionAction::Resume);
+        if !is_paused {
+            return;
         }
+        self.load_state_action(id);
+        self.session_action(id, SessionAction::Resume);
     }
 
     fn load_state_action(&mut self, id: SessionId) {
