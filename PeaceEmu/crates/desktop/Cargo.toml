@@ -19,7 +19,7 @@ winres = "0.1"
 [dependencies]
 host-app = { version = "0.1.0", path = "../app" }
 emulation-core = { version = "0.1.0", path = "../core" }
-peaceemu-nes = { git = "https://github.com/Likounsee/PeaceEmu-NES", rev = "e33757c2727842a27da71e0f61209a8f0fa4c583" }
+peaceemu-nes = { git = "https://github.com/Likounsee/PeaceEmu-NES", rev = "3fba3c3ea077c4b89a48f0308c5f0a2ba1bc888f" }
 eframe = { version = "=0.27.2", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
 image = { version = "=0.24.9", default-features = false, features = ["png", "jpeg", "webp"] }
 ed25519-dalek = "=2.1.1"
