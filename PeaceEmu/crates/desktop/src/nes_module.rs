@@ -3,34 +3,12 @@
 //! This adapter has no window, event loop, filesystem access, or audio device.
 //! The PeaceEmu host owns library launch, presentation, input, and persistence.
 
-use emulation_core::content::{ContentFormatProbe, FormatProbeResult};
 use emulation_core::core_io::{AudioBuffer, InputControl, InputEvent, PixelFormat, VideoFrame};
 use emulation_core::{
     CoreCapabilities, CoreDescriptor, CoreError, CoreEvent, CoreRegistry, EmulationCore,
     RegistryError, SystemId, CURRENT_CORE_API_VERSION,
 };
 use peaceemu_nes::session::{NesConfig, NesSession, NES_FRAME_HEIGHT, NES_FRAME_WIDTH};
-
-/// Read-only probe for iNES/NES 2.0 cartridge headers.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct NesCartridgeProbe;
-
-impl ContentFormatProbe for NesCartridgeProbe {
-    fn format_id(&self) -> &'static str {
-        "nes"
-    }
-
-    fn probe(&self, prefix: &[u8]) -> FormatProbeResult {
-        if prefix.len() < 4 {
-            return FormatProbeResult::NeedMoreData { minimum_bytes: 4 };
-        }
-        if prefix[..4] == *b"NES\x1A" {
-            FormatProbeResult::Match
-        } else {
-            FormatProbeResult::NoMatch
-        }
-    }
-}
 
 /// PeaceEmu-owned adapter around the independent Rust NES core.
 #[derive(Default)]
@@ -322,17 +300,6 @@ mod tests {
         rom[16 + 0x3ffc] = 0x00;
         rom[16 + 0x3ffd] = 0x80;
         rom
-    }
-
-    #[test]
-    fn probe_requires_complete_magic_and_recognizes_ines() {
-        let probe = NesCartridgeProbe;
-        assert_eq!(
-            probe.probe(b"NES"),
-            FormatProbeResult::NeedMoreData { minimum_bytes: 4 }
-        );
-        assert_eq!(probe.probe(b"NES\x1A"), FormatProbeResult::Match);
-        assert_eq!(probe.probe(b"NOPE"), FormatProbeResult::NoMatch);
     }
 
     #[test]
