@@ -31,6 +31,7 @@ mod key_bindings;
 mod language_pack;
 mod library_page;
 pub mod manifest_ed25519;
+mod nes_module;
 mod nes_module_manager;
 mod nes_probe;
 mod preferences;
@@ -335,7 +336,8 @@ impl DesktopPage {
 
 impl DesktopApp {
     fn new() -> Result<Self, Box<dyn Error>> {
-        let registry = CoreRegistry::new();
+        let mut registry = CoreRegistry::new();
+        nes_module::register_nes(&mut registry)?;
         let host = HostRuntime::new(HostRuntimeConfig::default())?;
         let mut controller = ApplicationController::new(host);
         let config_path = config_file_path();
@@ -809,52 +811,9 @@ impl DesktopApp {
             return;
         }
 
-        // NES is an optional, separately downloaded module. Never fall back to a
-        // built-in core: launching from the library always starts the installed module.
-        if Path::new(&path)
-            .extension()
-            .is_some_and(|extension| extension.to_string_lossy().eq_ignore_ascii_case("nes"))
-        {
-            let Some(executable) = nes_module_manager::installed_executable_path() else {
-                self.message = if self.language == "fr" {
-                    "Le module NES n’est pas installé. Ouvrez Systèmes pour le télécharger."
-                        .to_owned()
-                } else {
-                    "The NES module is not installed. Open Systems to download it.".to_owned()
-                };
-                self.navigate_to(DesktopPage::Systems);
-                return;
-            };
-            if !self.key_bindings.contains_key("nes") {
-                let bindings = key_bindings::KeyBindings::load(self.config_path.as_deref(), "nes");
-                self.key_bindings.insert("nes".to_owned(), bindings);
-            }
-            let key_codes = self.key_bindings["nes"].nes_virtual_key_codes();
-            let key_argument = key_codes
-                .iter()
-                .map(i32::to_string)
-                .collect::<Vec<_>>()
-                .join(",");
-            let mut command = std::process::Command::new(&executable);
-            command.arg(&path).arg("--keys").arg(key_argument);
-            match command.spawn() {
-                Ok(_) => {
-                    self.message = if self.language == "fr" {
-                        "Jeu NES lancé dans la fenêtre du module.".to_owned()
-                    } else {
-                        "NES game launched in the module window.".to_owned()
-                    };
-                }
-                Err(error) => {
-                    self.message = if self.language == "fr" {
-                        format!("Impossible de lancer le module NES : {error}")
-                    } else {
-                        format!("Could not launch the NES module: {error}")
-                    };
-                }
-            }
-            return;
-        }
+        // NES is registered as an in-process core. Launch it through the same
+        // host controller as every other system so it appears in Sessions and
+        // uses PeaceEmu's shared input, video, audio and persistence lifecycle.
 
         // Release held controls in every session before creating/switching sessions.
         // Input may have been sent to a non-active session earlier; failing to release
