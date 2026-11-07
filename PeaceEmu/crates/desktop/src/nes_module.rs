@@ -56,7 +56,7 @@ impl EmulationCore for NesCoreAdapter {
             capabilities: CoreCapabilities {
                 content_loading: true,
                 persistent_saves: true,
-                save_states: false,
+                save_states: true,
                 video_output: true,
                 audio_output: true,
                 input: true,
@@ -146,6 +146,33 @@ impl EmulationCore for NesCoreAdapter {
             self.save_dirty = true;
         }
         Ok(CoreEvent::FrameReady)
+    }
+
+    fn save_state(&self) -> Result<Vec<u8>, CoreError> {
+        let session = self.session()?;
+        let payload = session
+            .save_state()
+            .map_err(|_| CoreError::Execution("could not serialize the complete NES machine state"))?;
+        let mut state = Vec::with_capacity(payload.len() + 1);
+        state.push(self.controller_1);
+        state.extend_from_slice(&payload);
+        Ok(state)
+    }
+
+    fn load_state(&mut self, state: &[u8]) -> Result<(), CoreError> {
+        let Some((&controller_1, payload)) = state.split_first() else {
+            return Err(CoreError::InvalidState("NES save state is empty"));
+        };
+        let session = self.session_mut()?;
+        session
+            .load_state(payload)
+            .map_err(|_| CoreError::InvalidState("NES save state is malformed or incompatible"))?;
+        let has_battery_ram = session.has_battery_backed_ram();
+        self.controller_1 = controller_1;
+        self.pending_video = None;
+        self.pending_audio = None;
+        self.save_dirty = has_battery_ram;
+        Ok(())
     }
 
     fn save_game_data(&self) -> Result<Vec<u8>, CoreError> {
@@ -300,6 +327,39 @@ mod tests {
         rom[16 + 0x3ffc] = 0x00;
         rom[16 + 0x3ffd] = 0x80;
         rom
+    }
+
+    #[test]
+    fn adapter_save_states_restore_the_complete_nes_machine() {
+        let mut core = NesCoreAdapter::new();
+        assert!(core.descriptor().capabilities.save_states);
+        core.load_content(&looping_rom()).unwrap();
+        core.run_until_event().unwrap();
+        let saved = core.save_state().unwrap();
+
+        let mut expected = NesCoreAdapter::new();
+        expected.load_content(&looping_rom()).unwrap();
+        expected.load_state(&saved).unwrap();
+        let expected_event = expected.run_until_event().unwrap();
+
+        core.run_until_event().unwrap();
+        core.load_state(&saved).unwrap();
+        assert_eq!(core.run_until_event().unwrap(), expected_event);
+        let actual_frame = core.take_video_frame().unwrap().unwrap();
+        let expected_frame = expected.take_video_frame().unwrap().unwrap();
+        assert_eq!(actual_frame.pixels(), expected_frame.pixels());
+    }
+
+    #[test]
+    fn adapter_rejects_malformed_save_states_without_replacing_the_session() {
+        let mut core = NesCoreAdapter::new();
+        core.load_content(&looping_rom()).unwrap();
+        core.run_until_event().unwrap();
+        assert!(matches!(
+            core.load_state(b"invalid"),
+            Err(CoreError::InvalidState(_))
+        ));
+        assert_eq!(core.run_until_event().unwrap(), CoreEvent::FrameReady);
     }
 
     #[test]
