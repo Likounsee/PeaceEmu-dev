@@ -378,8 +378,8 @@ mod tests {
     fn library_launch_pipeline_selects_and_starts_the_registered_nes_core() {
         let mut registry = CoreRegistry::new();
         register_nes(&mut registry).unwrap();
-        let probe = NesCartridgeProbe;
-        let probes: [&dyn ContentFormatProbe; 1] = [&probe];
+        let probe = crate::nes_probe::NesCartridgeProbe;
+        let probes: [&dyn emulation_core::content::ContentFormatProbe; 1] = [&probe];
         let session = emulation_core::runtime::launch_content(
             &looping_rom(),
             emulation_core::content::ContentLimits::new(32 * 1024 * 1024),
