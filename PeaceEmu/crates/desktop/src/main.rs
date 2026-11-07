@@ -252,10 +252,14 @@ enum LibraryFormat {
 }
 
 fn visible_library_formats(installed: &BTreeSet<String>) -> Vec<LibraryFormat> {
-    [LibraryFormat::GameBoy, LibraryFormat::Nes]
-        .into_iter()
-        .filter(|format| format.module_id().is_some_and(|id| installed.contains(id)))
-        .collect()
+    let mut formats = Vec::with_capacity(2);
+    if installed.contains("game-boy") {
+        formats.push(LibraryFormat::GameBoy);
+    }
+    // NES is built into this desktop build and must not disappear when the
+    // optional legacy standalone module package is not installed.
+    formats.push(LibraryFormat::Nes);
+    formats
 }
 
 impl LibraryFormat {
@@ -2608,9 +2612,9 @@ mod preference_tests {
     }
 
     #[test]
-    fn library_categories_follow_installed_modules() {
+    fn library_categories_always_include_builtin_nes() {
         let none = BTreeSet::new();
-        assert!(visible_library_formats(&none).is_empty());
+        assert_eq!(visible_library_formats(&none), vec![LibraryFormat::Nes]);
 
         let nes = ["nes".to_owned()].into_iter().collect();
         assert_eq!(visible_library_formats(&nes), vec![LibraryFormat::Nes]);
@@ -2618,7 +2622,7 @@ mod preference_tests {
         let game_boy = ["game-boy".to_owned()].into_iter().collect();
         assert_eq!(
             visible_library_formats(&game_boy),
-            vec![LibraryFormat::GameBoy]
+            vec![LibraryFormat::GameBoy, LibraryFormat::Nes]
         );
 
         let both = ["game-boy".to_owned(), "nes".to_owned()]
