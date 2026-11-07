@@ -1175,6 +1175,41 @@ impl DesktopApp {
         }
     }
 
+    fn quick_save_state(&mut self, id: SessionId) {
+        let is_running = self
+            .controller
+            .session_summary(id)
+            .is_ok_and(|summary| summary.state == emulation_core::runtime::SessionState::Running);
+        if is_running {
+            self.session_action(id, SessionAction::Pause);
+        }
+        let is_paused = self
+            .controller
+            .session_summary(id)
+            .is_ok_and(|summary| summary.state == emulation_core::runtime::SessionState::Paused);
+        if is_paused {
+            self.save_state_action(id);
+        }
+    }
+
+    fn quick_load_state(&mut self, id: SessionId) {
+        let is_running = self
+            .controller
+            .session_summary(id)
+            .is_ok_and(|summary| summary.state == emulation_core::runtime::SessionState::Running);
+        if is_running {
+            self.session_action(id, SessionAction::Pause);
+        }
+        self.load_state_action(id);
+        let is_paused = self
+            .controller
+            .session_summary(id)
+            .is_ok_and(|summary| summary.state == emulation_core::runtime::SessionState::Paused);
+        if is_paused {
+            self.session_action(id, SessionAction::Resume);
+        }
+    }
+
     fn load_state_action(&mut self, id: SessionId) {
         let path = match self.save_state_path(id) {
             Ok(path) => path,
@@ -1659,6 +1694,8 @@ impl DesktopApp {
         let mut lost_focus = false;
         let mut reset_requested = false;
         let mut fullscreen_toggle_requested = false;
+        let mut quick_save_requested = false;
+        let mut quick_load_requested = false;
         let mut turbo_change = None;
         let mut input_events = Vec::new();
         let mut modifier_snapshot = egui::Modifiers::default();
@@ -1689,6 +1726,8 @@ impl DesktopApp {
                         }
                         match key {
                             egui::Key::F1 if pressed => reset_requested = true,
+                            egui::Key::F5 if pressed => quick_save_requested = true,
+                            egui::Key::F8 if pressed => quick_load_requested = true,
                             egui::Key::F11 if pressed => fullscreen_toggle_requested = true,
                             egui::Key::Tab => turbo_change = Some(pressed),
                             _ => {
@@ -1754,6 +1793,16 @@ impl DesktopApp {
                 self.session_action(id, SessionAction::Reset);
             }
         }
+        if quick_save_requested {
+            if let Some(id) = self.controller.active_session() {
+                self.quick_save_state(id);
+            }
+        }
+        if quick_load_requested {
+            if let Some(id) = self.controller.active_session() {
+                self.quick_load_state(id);
+            }
+        }
         if close_requested {
             self.game_window_open = false;
             if let Some(id) = self.controller.active_session() {
@@ -1780,6 +1829,8 @@ impl DesktopApp {
             let mut input_events = Vec::new();
             let mut lost_focus = false;
             let mut reset_requested = false;
+            let mut quick_save_requested = false;
+            let mut quick_load_requested = false;
             let mut turbo_change = None;
             for event in events {
                 match event {
@@ -1794,6 +1845,8 @@ impl DesktopApp {
                         }
                         match key {
                             egui::Key::F1 if pressed => reset_requested = true,
+                            egui::Key::F5 if pressed => quick_save_requested = true,
+                            egui::Key::F8 if pressed => quick_load_requested = true,
                             egui::Key::Tab => turbo_change = Some(pressed),
                             _ => {
                                 if let Some(control) = self.control_for_active_session(key) {
@@ -1827,6 +1880,16 @@ impl DesktopApp {
             if reset_requested {
                 if let Some(id) = self.controller.active_session() {
                     self.session_action(id, SessionAction::Reset);
+                }
+            }
+            if quick_save_requested {
+                if let Some(id) = self.controller.active_session() {
+                    self.quick_save_state(id);
+                }
+            }
+            if quick_load_requested {
+                if let Some(id) = self.controller.active_session() {
+                    self.quick_load_state(id);
                 }
             }
         }
