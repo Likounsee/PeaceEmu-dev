@@ -173,12 +173,6 @@ impl KeyBindings {
             })
     }
 
-    /// Returns the Windows virtual-key codes expected by the standalone NES module,
-    /// in its hardware order: A, B, Select, Start, Up, Down, Left, Right.
-    pub(crate) fn nes_virtual_key_codes(&self) -> [i32; 8] {
-        [4, 5, 9, 8, 0, 1, 2, 3].map(|index| windows_virtual_key(self.keys[index]))
-    }
-
     pub(crate) fn reset(&mut self) {
         self.keys = DEFAULTS;
     }
@@ -380,19 +374,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn exports_nes_hardware_order_as_windows_virtual_keys() {
-        let bindings = KeyBindings { keys: DEFAULTS };
-        assert_eq!(
-            bindings.nes_virtual_key_codes(),
-            [0x5A, 0x58, 0x20, 0x0D, 0x26, 0x28, 0x25, 0x27]
-        );
-
-        let mut customized = KeyBindings { keys: DEFAULTS };
-        customized.set(9, egui::Key::Backspace).unwrap();
-        assert_eq!(customized.nes_virtual_key_codes()[2], 0x08);
-    }
-
-    #[test]
     fn defaults_keep_existing_layout() {
         let bindings = KeyBindings { keys: DEFAULTS };
         assert_eq!(bindings.control(egui::Key::ArrowUp), Some(InputControl::Up));
@@ -445,7 +426,7 @@ mod tests {
     fn assigns_function_and_extended_egui_keys() {
         let mut bindings = KeyBindings { keys: DEFAULTS };
         bindings.assign_or_swap(4, egui::Key::F13).unwrap();
-        assert_eq!(bindings.nes_virtual_key_codes()[0], 0x7C);
+        assert_eq!(windows_virtual_key(bindings.keys[0]), 0x7C);
         assert_eq!(bindings.label(4), "F13");
         assert_eq!(parse_key("F24"), Some(egui::Key::F24));
         assert_eq!(parse_key("Questionmark"), Some(egui::Key::Questionmark));
