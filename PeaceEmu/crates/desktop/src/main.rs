@@ -931,17 +931,24 @@ impl DesktopApp {
     ) {
         // egui exposes modifier state rather than standalone Key events for these keys.
         // mac_cmd maps to the platform's Super/Windows/Command modifier.
-        let current = [modifiers.ctrl, modifiers.alt, modifiers.shift, modifiers.mac_cmd];
+        let current = [
+            modifiers.ctrl,
+            modifiers.alt,
+            modifiers.shift,
+            modifiers.mac_cmd,
+        ];
         let virtual_keys = [0x11, 0x12, 0x10, 0x5B];
         if let Some(module_id) = self.active_session_module_id() {
             if !self.key_bindings.contains_key(&module_id) {
-                let bindings = key_bindings::KeyBindings::load(self.config_path.as_deref(), &module_id);
+                let bindings =
+                    key_bindings::KeyBindings::load(self.config_path.as_deref(), &module_id);
                 self.key_bindings.insert(module_id.clone(), bindings);
             }
             if let Some(bindings) = self.key_bindings.get(&module_id) {
                 for index in 0..current.len() {
                     if current[index] != self.modifier_pressed[index] {
-                        if let Some(control) = bindings.control_for_virtual_key(virtual_keys[index]) {
+                        if let Some(control) = bindings.control_for_virtual_key(virtual_keys[index])
+                        {
                             input_events.push((control, current[index]));
                         }
                     }
@@ -1662,7 +1669,8 @@ impl DesktopApp {
                 close_requested = true;
                 return;
             }
-            let (events, modifiers) = viewport_context.input(|input| (input.events.clone(), input.modifiers));
+            let (events, modifiers) =
+                viewport_context.input(|input| (input.events.clone(), input.modifiers));
             modifier_snapshot = modifiers;
             for event in events {
                 match event {
@@ -1763,7 +1771,8 @@ impl DesktopApp {
         }
 
         if self.active_page == DesktopPage::Game && !self.game_window_open {
-            let (events, modifiers) = context.input(|input| (input.events.clone(), input.modifiers));
+            let (events, modifiers) =
+                context.input(|input| (input.events.clone(), input.modifiers));
             let mut input_events = Vec::new();
             let mut lost_focus = false;
             let mut reset_requested = false;
