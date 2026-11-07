@@ -150,9 +150,9 @@ impl EmulationCore for NesCoreAdapter {
 
     fn save_state(&self) -> Result<Vec<u8>, CoreError> {
         let session = self.session()?;
-        let payload = session
-            .save_state()
-            .map_err(|_| CoreError::Execution("could not serialize the complete NES machine state"))?;
+        let payload = session.save_state().map_err(|_| {
+            CoreError::Execution("could not serialize the complete NES machine state")
+        })?;
         let mut state = Vec::with_capacity(payload.len() + 1);
         state.push(self.controller_1);
         state.extend_from_slice(&payload);
