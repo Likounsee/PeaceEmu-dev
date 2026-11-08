@@ -80,7 +80,10 @@ fn nes_button_anchor(index: usize, rect: egui::Rect) -> egui::Pos2 {
         8 => (0.575, 0.50), // Start
         _ => (0.475, 0.50), // Select
     };
-    egui::pos2(rect.left() + rect.width() * x, rect.top() + rect.height() * y)
+    egui::pos2(
+        rect.left() + rect.width() * x,
+        rect.top() + rect.height() * y,
+    )
 }
 
 impl DesktopApp {
@@ -194,7 +197,8 @@ impl DesktopApp {
                             color_image,
                             egui::TextureOptions::LINEAR,
                         );
-                        ui.ctx().data_mut(|data| data.insert_temp(texture_id, texture.clone()));
+                        ui.ctx()
+                            .data_mut(|data| data.insert_temp(texture_id, texture.clone()));
                         Some(texture)
                     }
                     Err(_) => None,
@@ -205,9 +209,7 @@ impl DesktopApp {
         };
 
         let action_id = egui::Id::new(("controls-selected-action", selected.as_str()));
-        let mut selected_action: usize = ui
-            .data_mut(|data| data.get_temp(action_id))
-            .unwrap_or(0);
+        let mut selected_action: usize = ui.data_mut(|data| data.get_temp(action_id)).unwrap_or(0);
         if selected == "nes" && ![0, 1, 2, 3, 4, 5, 8, 9].contains(&selected_action) {
             selected_action = 0;
         }
@@ -231,9 +233,8 @@ impl DesktopApp {
                     let mut row_targets = Vec::new();
                     ui.horizontal_top(|ui| {
                         ui.add_space(4.0);
-                        let image_response = ui.add(
-                            egui::Image::new(&texture).fit_to_exact_size(display_size),
-                        );
+                        let image_response =
+                            ui.add(egui::Image::new(&texture).fit_to_exact_size(display_size));
                         image_rect = image_response.rect;
                         ui.add_space(12.0);
                         ui.vertical(|ui| {
@@ -280,8 +281,9 @@ impl DesktopApp {
                             }
                         });
                     });
-                    if let Some((_, target)) =
-                        row_targets.iter().find(|(index, _)| *index == selected_action)
+                    if let Some((_, target)) = row_targets
+                        .iter()
+                        .find(|(index, _)| *index == selected_action)
                     {
                         let start = nes_button_anchor(selected_action, image_rect);
                         ui.painter().arrow(
@@ -314,22 +316,25 @@ impl DesktopApp {
                         let (fr, en) = key_bindings::ACTIONS[index];
                         ui.horizontal(|ui| {
                             ui.label(egui::RichText::new(if french { fr } else { en }).size(14.0));
-                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                let is_capturing = capturing == Some(index);
-                                let text: String = if is_capturing {
-                                    (if french {
-                                        "Appuyez sur une touche…"
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    let is_capturing = capturing == Some(index);
+                                    let text: String = if is_capturing {
+                                        (if french {
+                                            "Appuyez sur une touche…"
+                                        } else {
+                                            "Press a key…"
+                                        })
+                                        .to_owned()
                                     } else {
-                                        "Press a key…"
-                                    })
-                                    .to_owned()
-                                } else {
-                                    labels.get(index).cloned().unwrap_or_default()
-                                };
-                                if keycap(ui, &palette, &text, is_capturing).clicked() {
-                                    clicked = Some(index);
-                                }
-                            });
+                                        labels.get(index).cloned().unwrap_or_default()
+                                    };
+                                    if keycap(ui, &palette, &text, is_capturing).clicked() {
+                                        clicked = Some(index);
+                                    }
+                                },
+                            );
                         });
                     }
                 }
@@ -339,13 +344,19 @@ impl DesktopApp {
             ui.add_space(4.0);
             ui.horizontal(|ui| {
                 if ui
-                    .button(if french { "Réinitialiser" } else { "Restore defaults" })
+                    .button(if french {
+                        "Réinitialiser"
+                    } else {
+                        "Restore defaults"
+                    })
                     .clicked()
                 {
                     reset_clicked = true;
                 }
                 if capturing.is_some()
-                    && ui.button(if french { "Annuler" } else { "Cancel" }).clicked()
+                    && ui
+                        .button(if french { "Annuler" } else { "Cancel" })
+                        .clicked()
                 {
                     cancel_clicked = true;
                 }
