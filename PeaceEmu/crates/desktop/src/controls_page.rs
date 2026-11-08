@@ -116,10 +116,7 @@ fn draw_nes_controller(
         )
     };
     let control_rect = |x: f32, y: f32, w: f32, h: f32| {
-        egui::Rect::from_center_size(
-            point(x, y),
-            egui::vec2(rect.width() * w, rect.height() * h),
-        )
+        egui::Rect::from_center_size(point(x, y), egui::vec2(rect.width() * w, rect.height() * h))
     };
 
     // D-pad: four distinct, clickable directions around a dark central hub.
@@ -171,11 +168,7 @@ fn draw_nes_controller(
             button_radius + 2.0,
             egui::Color32::from_rgb(80, 25, 28),
         );
-        painter.circle_filled(
-            center,
-            button_radius,
-            egui::Color32::from_rgb(190, 38, 48),
-        );
+        painter.circle_filled(center, button_radius, egui::Color32::from_rgb(190, 38, 48));
         painter.circle_stroke(
             center,
             button_radius,
@@ -198,7 +191,10 @@ fn draw_nes_controller(
         egui::FontId::proportional(rect.height() * 0.027),
         egui::Color32::from_rgb(75, 78, 84),
     );
-    for (label, center) in [("SELECT", point(0.405, 0.735)), ("START", point(0.535, 0.735))] {
+    for (label, center) in [
+        ("SELECT", point(0.405, 0.735)),
+        ("START", point(0.535, 0.735)),
+    ] {
         painter.text(
             center,
             egui::Align2::CENTER_CENTER,
@@ -222,8 +218,20 @@ fn draw_nes_controller(
         .map(|(index, target)| (*index, *target))
         .collect::<Vec<_>>();
     hit_targets.extend([(9, select_rect), (8, start_rect)]);
-    hit_targets.push((5, egui::Rect::from_center_size(b_center, egui::vec2(button_radius * 2.4, button_radius * 2.4))));
-    hit_targets.push((4, egui::Rect::from_center_size(a_center, egui::vec2(button_radius * 2.4, button_radius * 2.4))));
+    hit_targets.push((
+        5,
+        egui::Rect::from_center_size(
+            b_center,
+            egui::vec2(button_radius * 2.4, button_radius * 2.4),
+        ),
+    ));
+    hit_targets.push((
+        4,
+        egui::Rect::from_center_size(
+            a_center,
+            egui::vec2(button_radius * 2.4, button_radius * 2.4),
+        ),
+    ));
 
     let mut clicked = None;
     for (index, target) in hit_targets {
@@ -244,13 +252,20 @@ fn draw_nes_controller(
     let accent_stroke = egui::Stroke::new(3.0, palette.accent);
     match selected_action {
         0..=3 => {
-            if let Some((_, target)) = dpad_parts.iter().find(|(index, _)| *index == selected_action) {
+            if let Some((_, target)) = dpad_parts
+                .iter()
+                .find(|(index, _)| *index == selected_action)
+            {
                 painter.rect_filled(*target, egui::Rounding::same(5.0), accent_fill);
                 painter.rect_stroke(*target, egui::Rounding::same(5.0), accent_stroke);
             }
         }
         4 | 5 => {
-            let center = if selected_action == 4 { a_center } else { b_center };
+            let center = if selected_action == 4 {
+                a_center
+            } else {
+                b_center
+            };
             painter.circle_filled(center, button_radius, accent_fill);
             painter.circle_stroke(center, button_radius, accent_stroke);
             painter.circle_stroke(
@@ -260,7 +275,11 @@ fn draw_nes_controller(
             );
         }
         8 | 9 => {
-            let target = if selected_action == 8 { start_rect } else { select_rect };
+            let target = if selected_action == 8 {
+                start_rect
+            } else {
+                select_rect
+            };
             painter.rect_filled(target, egui::Rounding::same(8.0), accent_fill);
             painter.rect_stroke(target, egui::Rounding::same(8.0), accent_stroke);
         }
