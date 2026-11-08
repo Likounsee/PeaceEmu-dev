@@ -210,7 +210,9 @@ struct ExternalNesProcess {
 impl ExternalNesProcess {
     fn send(&mut self, command: &str) -> Result<(), String> {
         let Some(commands) = self.commands.as_mut() else {
-            return Err("The NES session is stopped. Reopen it before sending commands.".to_owned());
+            return Err(
+                "The NES session is stopped. Reopen it before sending commands.".to_owned(),
+            );
         };
         writeln!(commands, "{command}")
             .and_then(|()| commands.flush())
