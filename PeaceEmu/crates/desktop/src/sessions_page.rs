@@ -592,10 +592,7 @@ impl DesktopApp {
                                 let _ = process.send("FULLSCREEN");
                             }
                         }
-                        if ui
-                            .button("Turbo x4")
-                            .clicked()
-                        {
+                        if ui.button("Turbo x4").clicked() {
                             if let Some(process) = self.nes_processes.get_mut(path) {
                                 let _ = process.send("TOGGLE_TURBO");
                             }
