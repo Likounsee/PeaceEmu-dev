@@ -64,7 +64,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     #[cfg(windows)]
-    if let Err(error) = windows_app_identity::set_current_process_app_user_model_id("Likounsee.PeaceEmu") {
+    if let Err(error) =
+        windows_app_identity::set_current_process_app_user_model_id("Likounsee.PeaceEmu")
+    {
         eprintln!("PeaceEmu: could not set Windows taskbar identity: {error}");
     }
 
@@ -940,9 +942,7 @@ impl DesktopApp {
                 .arg("--keys")
                 .arg(nes_keys);
             if let Ok(host_executable) = std::env::current_exe() {
-                child_command
-                    .arg("--host-executable")
-                    .arg(host_executable);
+                child_command.arg("--host-executable").arg(host_executable);
             }
             match child_command
                 .stdin(Stdio::piped())
@@ -1235,7 +1235,9 @@ impl DesktopApp {
                 self.message = if self.language == "fr" {
                     format!("Touches enregistrées, mais le module NES n’a pas reçu la mise à jour : {error}")
                 } else {
-                    format!("Bindings saved, but the NES module did not receive the update: {error}")
+                    format!(
+                        "Bindings saved, but the NES module did not receive the update: {error}"
+                    )
                 };
             }
         }
