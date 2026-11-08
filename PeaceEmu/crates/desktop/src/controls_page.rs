@@ -96,7 +96,7 @@ fn draw_nes_controller(
     painter.rect_stroke(
         shell,
         egui::Rounding::same(24.0),
-        egui::Stroke::new(2.0, egui::Color32::from_rgb(115, 120, 128)),
+        egui::Stroke::new(2.0_f32, egui::Color32::from_rgb(115, 120, 128)),
     );
     painter.rect_filled(
         frame,
@@ -132,14 +132,14 @@ fn draw_nes_controller(
         painter.rect_stroke(
             part,
             egui::Rounding::same(5.0),
-            egui::Stroke::new(1.0, egui::Color32::from_rgb(12, 13, 16)),
+            egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(12, 13, 16)),
         );
     }
     painter.circle_filled(point(0.225, 0.5), rect.height() * 0.047, dpad_color);
     painter.circle_stroke(
         point(0.225, 0.5),
         rect.height() * 0.047,
-        egui::Stroke::new(1.0, egui::Color32::from_rgb(12, 13, 16)),
+        egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(12, 13, 16)),
     );
 
     // Select and Start are separate dark, slightly rounded oblong switches.
@@ -154,7 +154,7 @@ fn draw_nes_controller(
         painter.rect_stroke(
             button,
             egui::Rounding::same(8.0),
-            egui::Stroke::new(1.0, egui::Color32::from_rgb(15, 16, 19)),
+            egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(15, 16, 19)),
         );
     }
 
@@ -172,7 +172,7 @@ fn draw_nes_controller(
         painter.circle_stroke(
             center,
             button_radius,
-            egui::Stroke::new(2.0, egui::Color32::from_rgb(105, 24, 30)),
+            egui::Stroke::new(2.0_f32, egui::Color32::from_rgb(105, 24, 30)),
         );
     }
 
@@ -249,7 +249,7 @@ fn draw_nes_controller(
 
     // Selection glow follows the actual shape of the chosen control.
     let accent_fill = palette.accent.linear_multiply(0.30);
-    let accent_stroke = egui::Stroke::new(3.0, palette.accent);
+    let accent_stroke = egui::Stroke::new(3.0_f32, palette.accent);
     match selected_action {
         0..=3 => {
             if let Some((_, target)) = dpad_parts
@@ -271,7 +271,7 @@ fn draw_nes_controller(
             painter.circle_stroke(
                 center,
                 button_radius + 5.0,
-                egui::Stroke::new(2.0, palette.accent.linear_multiply(0.55)),
+                egui::Stroke::new(2.0_f32, palette.accent.linear_multiply(0.55)),
             );
         }
         8 | 9 => {
