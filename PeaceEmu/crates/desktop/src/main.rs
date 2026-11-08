@@ -5,7 +5,7 @@
 )]
 //! Experimental desktop frontend for the shared PeaceEmu application controller.
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
@@ -46,6 +46,7 @@ mod shell;
 mod systems_page;
 mod theme;
 mod update;
+mod validation_history;
 use eframe::egui;
 use emulation_core::host_runtime::{HostRuntime, HostRuntimeConfig, SessionId};
 use emulation_core::runtime::SessionState;
@@ -198,6 +199,7 @@ struct DesktopApp {
     nes_install_receiver: Option<Receiver<Result<PathBuf, String>>>,
     nes_installing: bool,
     nes_processes: HashMap<PathBuf, Child>,
+    validated_paths: HashSet<PathBuf>,
     nes_uninstall_receiver: Option<Receiver<Result<usize, String>>>,
     nes_uninstalling: bool,
     nes_uninstall_confirm_open: bool,
@@ -344,10 +346,11 @@ impl DesktopPage {
 
 impl DesktopApp {
     fn new() -> Result<Self, Box<dyn Error>> {
-        let mut registry = CoreRegistry::new();
+        let registry = CoreRegistry::new();
         let host = HostRuntime::new(HostRuntimeConfig::default())?;
         let mut controller = ApplicationController::new(host);
         let config_path = config_file_path();
+        let mut validated_paths = config_path.as_deref().map(validation_history::load).unwrap_or_default();
         let mut dark_mode = true;
         let mut language = preferences::system_language();
         let mut accent_color = theme::DEFAULT_ACCENT;
@@ -371,6 +374,10 @@ impl DesktopApp {
                     for content_path in saved.paths {
                         match controller.import_content(&content_path, MAX_CONTENT_BYTES as u64) {
                             Ok(entry) => {
+                                let restored_path = entry.path().to_path_buf();
+                                if validated_paths.contains(&restored_path) {
+                                    controller.library_mut().record_validation(&restored_path, ContentValidation::Accepted);
+                                }
                                 // Restore a usable library selection from the first path that
                                 // successfully imports. Do not select stale paths that failed.
                                 if selected_content.is_none() {
@@ -447,6 +454,7 @@ impl DesktopApp {
             nes_install_receiver: None,
             nes_installing: false,
             nes_processes: HashMap::new(),
+            validated_paths,
             nes_uninstall_receiver: None,
             nes_uninstalling: false,
             nes_uninstall_confirm_open: false,
@@ -828,19 +836,17 @@ impl DesktopApp {
         if canonical_path.extension().and_then(|value| value.to_str())
             .is_some_and(|value| value.eq_ignore_ascii_case("nes"))
         {
-            if let Some(child) = self.nes_processes.get_mut(&canonical_path) {
-                match child.try_wait() {
-                    Ok(None) => {
-                        self.message = if self.language == "fr" {
-                            "Ce jeu est déjà ouvert dans son module NES.".to_owned()
-                        } else {
-                            "This game is already open in its NES module.".to_owned()
-                        };
-                        return;
-                    }
-                    _ => { self.nes_processes.remove(&canonical_path); }
-                }
+            let already_running = self.nes_processes.get_mut(&canonical_path)
+                .is_some_and(|child| matches!(child.try_wait(), Ok(None)));
+            if already_running {
+                self.message = if self.language == "fr" {
+                    "Ce jeu est déjà ouvert dans son module NES.".to_owned()
+                } else {
+                    "This game is already open in its NES module.".to_owned()
+                };
+                return;
             }
+            self.nes_processes.remove(&canonical_path);
             let Some(executable) = nes_module_manager::installed_executable_path() else {
                 self.message = if self.language == "fr" {
                     "Le module NES n’est pas installé. Installez-le depuis la page Systèmes.".to_owned()
@@ -853,6 +859,8 @@ impl DesktopApp {
                 Ok(child) => {
                     self.nes_processes.insert(canonical_path.clone(), child);
                     self.controller.library_mut().record_validation(&canonical_path, ContentValidation::Accepted);
+                    self.validated_paths.insert(canonical_path.clone());
+                    let _ = validation_history::save(self.config_path.as_deref(), &self.validated_paths);
                     self.message = if self.language == "fr" {
                         "Validation acceptée au dernier lancement · module NES démarré.".to_owned()
                     } else {
@@ -861,6 +869,8 @@ impl DesktopApp {
                 }
                 Err(error) => {
                     self.controller.library_mut().record_validation(&canonical_path, ContentValidation::Rejected(error.to_string()));
+                    self.validated_paths.remove(&canonical_path);
+                    let _ = validation_history::save(self.config_path.as_deref(), &self.validated_paths);
                     self.message = if self.language == "fr" {
                         format!("Impossible de démarrer le module NES : {error}")
                     } else {
@@ -876,19 +886,23 @@ impl DesktopApp {
             .find(|(_, existing_path)| *existing_path == canonical_path)
         {
             let existing_id = *existing_id;
-            if self.controller.session_summary(existing_id).is_ok() {
-                if let Err(error) = self.controller.select_session(existing_id) {
-                    self.message = format!("Could not select existing session: {error}");
+            if let Ok(summary) = self.controller.session_summary(existing_id) {
+                if matches!(summary.state, SessionState::Running | SessionState::Paused) {
+                    if let Err(error) = self.controller.select_session(existing_id) {
+                        self.message = format!("Could not select existing session: {error}");
+                        return;
+                    }
+                    self.game_window_open = true;
+                    self.active_page = DesktopPage::Game;
+                    self.message = if self.language == "fr" {
+                        "Ce jeu est déjà ouvert : session existante réactivée.".to_owned()
+                    } else {
+                        "This game is already open: switched to its existing session.".to_owned()
+                    };
                     return;
                 }
-                self.game_window_open = true;
-                self.active_page = DesktopPage::Game;
-                self.message = if self.language == "fr" {
-                    "Ce jeu est déjà ouvert : session existante réactivée.".to_owned()
-                } else {
-                    "This game is already open: switched to its existing session.".to_owned()
-                };
-                return;
+                let _ = self.controller.close_session(existing_id);
+                self.session_content_paths.retain(|(id, _)| *id != existing_id);
             }
         }
 
@@ -917,7 +931,9 @@ impl DesktopApp {
                     std::fs::canonicalize(Path::new(&path)).unwrap_or_else(|_| PathBuf::from(path));
                 self.session_content_paths
                     .retain(|(session_id, _)| *session_id != id);
-                self.session_content_paths.push((id, launched_path));
+                self.session_content_paths.push((id, launched_path.clone()));
+                self.validated_paths.insert(launched_path.clone());
+                let _ = validation_history::save(self.config_path.as_deref(), &self.validated_paths);
                 self.message = match self.load_game_data_for_session(id) {
                     Ok(true) => {
                         if self.language == "fr" {
@@ -949,6 +965,8 @@ impl DesktopApp {
                 self.active_page = DesktopPage::Game;
             }
             Err(error) => {
+                self.validated_paths.remove(&canonical_path);
+                let _ = validation_history::save(self.config_path.as_deref(), &self.validated_paths);
                 self.message = if self.language == "fr" {
                     format!("Échec du lancement : {error}")
                 } else {
