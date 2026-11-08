@@ -187,7 +187,11 @@ fn draw_nes_controller(
     // Three red graphic bands on the right: two broad bars and one thin stripe.
     for (y, h) in [(0.455, 0.085), (0.605, 0.055), (0.775, 0.022)] {
         let band = r(0.765, y, 0.335, h);
-        painter.rect_filled(band, egui::Rounding::same(0.0), egui::Color32::from_rgb(232, 25, 37));
+        painter.rect_filled(
+            band,
+            egui::Rounding::same(0.0),
+            egui::Color32::from_rgb(232, 25, 37),
+        );
     }
 
     // D-pad with a bright silver raised surround, dark recess and sculpted cross.
