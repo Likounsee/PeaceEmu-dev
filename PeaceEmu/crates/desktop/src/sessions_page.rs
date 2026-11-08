@@ -491,7 +491,11 @@ impl DesktopApp {
             section_title(
                 ui,
                 &palette,
-                if french { "Sessions NES" } else { "NES sessions" },
+                if french {
+                    "Sessions NES"
+                } else {
+                    "NES sessions"
+                },
                 external_sessions.len(),
             );
             let mut next_turbo_speed = self.nes_turbo_speed;
@@ -499,7 +503,11 @@ impl DesktopApp {
             theme::card(ui, &palette, |ui| {
                 ui.set_width(ui.available_width());
                 ui.horizontal(|ui| {
-                    ui.label(if french { "Vitesse turbo" } else { "Turbo speed" });
+                    ui.label(if french {
+                        "Vitesse turbo"
+                    } else {
+                        "Turbo speed"
+                    });
                     let slider = egui::Slider::new(&mut next_turbo_speed, 0.5..=4.0)
                         .step_by(0.1)
                         .show_value(false);
@@ -550,7 +558,15 @@ impl DesktopApp {
                                 } else {
                                     "Stopped · saves retained"
                                 },
-                                if running { if *paused { palette.warning } else { palette.success } } else { palette.text_dim },
+                                if running {
+                                    if *paused {
+                                        palette.warning
+                                    } else {
+                                        palette.success
+                                    }
+                                } else {
+                                    palette.text_dim
+                                },
                             );
                             if let Some(process_id) = process_id {
                                 ui.label(
@@ -574,7 +590,11 @@ impl DesktopApp {
                         if running {
                             if ui
                                 .button(if *paused {
-                                    if french { "Reprendre (P)" } else { "Resume (P)" }
+                                    if french {
+                                        "Reprendre (P)"
+                                    } else {
+                                        "Resume (P)"
+                                    }
                                 } else {
                                     "Pause (P)"
                                 })
@@ -587,19 +607,31 @@ impl DesktopApp {
                                 self.send_nes_command(path, "RESET");
                             }
                             if ui
-                                .button(if french { "Sauver l'état (F5)" } else { "Save state (F5)" })
+                                .button(if french {
+                                    "Sauver l'état (F5)"
+                                } else {
+                                    "Save state (F5)"
+                                })
                                 .clicked()
                             {
                                 self.send_nes_command(path, "SAVE_STATE");
                             }
                             if ui
-                                .button(if french { "Restaurer (F8)" } else { "Load state (F8)" })
+                                .button(if french {
+                                    "Restaurer (F8)"
+                                } else {
+                                    "Load state (F8)"
+                                })
                                 .clicked()
                             {
                                 self.send_nes_command(path, "LOAD_STATE");
                             }
                             if ui
-                                .button(if french { "Plein écran (F11)" } else { "Fullscreen (F11)" })
+                                .button(if french {
+                                    "Plein écran (F11)"
+                                } else {
+                                    "Fullscreen (F11)"
+                                })
                                 .clicked()
                             {
                                 self.send_nes_command(path, "FULLSCREEN");
@@ -608,7 +640,11 @@ impl DesktopApp {
                                 self.send_nes_command(path, "TOGGLE_TURBO");
                             }
                             if ui
-                                .button(if french { "Fermer le jeu" } else { "Close game" })
+                                .button(if french {
+                                    "Fermer le jeu"
+                                } else {
+                                    "Close game"
+                                })
                                 .clicked()
                             {
                                 closing_external = Some(path.clone());
