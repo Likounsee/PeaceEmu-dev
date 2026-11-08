@@ -231,7 +231,9 @@ pub(crate) fn write_preferences_with_language(
     language: &str,
     paths: &[PathBuf],
 ) -> std::io::Result<()> {
-    write_preferences_with_language_and_turbo(path, dark_mode, ui_scale, accent_rgb, language, 4.0, paths)
+    write_preferences_with_language_and_turbo(
+        path, dark_mode, ui_scale, accent_rgb, language, 4.0, paths,
+    )
 }
 
 pub(crate) fn write_preferences_with_language_and_turbo(
@@ -890,7 +892,7 @@ mod tests {
     fn turbo_speed_preference_round_trips_and_clamps_invalid_values() {
         let path = temporary_config("turbo-speed-round-trip");
         write_preferences_with_language_and_turbo(&path, true, 1.0, [75, 115, 210], "fr", 2.7, &[])
-        .expect("turbo speed should be persisted");
+            .expect("turbo speed should be persisted");
 
         let saved = load_preferences(&path)
             .expect("preferences should load")
