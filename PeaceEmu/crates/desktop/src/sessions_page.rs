@@ -649,7 +649,7 @@ impl DesktopApp {
         if let Some(path) = closing_external {
             if let Some(mut process) = self.nes_processes.remove(&path) {
                 let _ = process.send("QUIT");
-                match process.child.kill().and_then(|()| process.child.wait().map(|_| ())) {
+                match process.child.wait().map(|_| ()) {
                     Ok(()) => {
                         self.message = if french {
                             format!("Session NES externe fermée : {}.", path.display())
@@ -777,7 +777,7 @@ impl DesktopApp {
                 let mut external_failures = Vec::new();
                 self.nes_processes.retain(|path, process| {
                     let _ = process.send("QUIT");
-                    let result = process.child.kill().and_then(|()| process.child.wait().map(|_| ()));
+                    let result = process.child.wait().map(|_| ());
                     if let Err(error) = result {
                         external_failures.push(format!("{}: {error}", path.display()));
                         true
