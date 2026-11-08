@@ -350,7 +350,10 @@ impl DesktopApp {
         let host = HostRuntime::new(HostRuntimeConfig::default())?;
         let mut controller = ApplicationController::new(host);
         let config_path = config_file_path();
-        let validated_paths = config_path.as_deref().map(validation_history::load).unwrap_or_default();
+        let validated_paths = config_path
+            .as_deref()
+            .map(validation_history::load)
+            .unwrap_or_default();
         let mut dark_mode = true;
         let mut language = preferences::system_language();
         let mut accent_color = theme::DEFAULT_ACCENT;
@@ -376,7 +379,10 @@ impl DesktopApp {
                             Ok(entry) => {
                                 let restored_path = entry.path().to_path_buf();
                                 if validated_paths.contains(&restored_path) {
-                                    controller.library_mut().record_validation(&restored_path, ContentValidation::Accepted);
+                                    controller.library_mut().record_validation(
+                                        &restored_path,
+                                        ContentValidation::Accepted,
+                                    );
                                 }
                                 // Restore a usable library selection from the first path that
                                 // successfully imports. Do not select stale paths that failed.
@@ -829,14 +835,18 @@ impl DesktopApp {
             return;
         }
 
-        let canonical_path = std::fs::canonicalize(Path::new(&path))
-            .unwrap_or_else(|_| PathBuf::from(&path));
+        let canonical_path =
+            std::fs::canonicalize(Path::new(&path)).unwrap_or_else(|_| PathBuf::from(&path));
 
         // NES is an independently installed executable module, never linked into PeaceEmu.
-        if canonical_path.extension().and_then(|value| value.to_str())
+        if canonical_path
+            .extension()
+            .and_then(|value| value.to_str())
             .is_some_and(|value| value.eq_ignore_ascii_case("nes"))
         {
-            let already_running = self.nes_processes.get_mut(&canonical_path)
+            let already_running = self
+                .nes_processes
+                .get_mut(&canonical_path)
                 .is_some_and(|child| matches!(child.try_wait(), Ok(None)));
             if already_running {
                 self.message = if self.language == "fr" {
@@ -849,7 +859,8 @@ impl DesktopApp {
             self.nes_processes.remove(&canonical_path);
             let Some(executable) = nes_module_manager::installed_executable_path() else {
                 self.message = if self.language == "fr" {
-                    "Le module NES n’est pas installé. Installez-le depuis la page Systèmes.".to_owned()
+                    "Le module NES n’est pas installé. Installez-le depuis la page Systèmes."
+                        .to_owned()
                 } else {
                     "The NES module is not installed. Install it from the Systems page.".to_owned()
                 };
@@ -858,9 +869,14 @@ impl DesktopApp {
             match Command::new(executable).arg(&canonical_path).spawn() {
                 Ok(child) => {
                     self.nes_processes.insert(canonical_path.clone(), child);
-                    self.controller.library_mut().record_validation(&canonical_path, ContentValidation::Accepted);
+                    self.controller
+                        .library_mut()
+                        .record_validation(&canonical_path, ContentValidation::Accepted);
                     self.validated_paths.insert(canonical_path.clone());
-                    let _ = validation_history::save(self.config_path.as_deref(), &self.validated_paths);
+                    let _ = validation_history::save(
+                        self.config_path.as_deref(),
+                        &self.validated_paths,
+                    );
                     self.message = if self.language == "fr" {
                         "Validation acceptée au dernier lancement · module NES démarré.".to_owned()
                     } else {
@@ -868,9 +884,15 @@ impl DesktopApp {
                     };
                 }
                 Err(error) => {
-                    self.controller.library_mut().record_validation(&canonical_path, ContentValidation::Rejected(error.to_string()));
+                    self.controller.library_mut().record_validation(
+                        &canonical_path,
+                        ContentValidation::Rejected(error.to_string()),
+                    );
                     self.validated_paths.remove(&canonical_path);
-                    let _ = validation_history::save(self.config_path.as_deref(), &self.validated_paths);
+                    let _ = validation_history::save(
+                        self.config_path.as_deref(),
+                        &self.validated_paths,
+                    );
                     self.message = if self.language == "fr" {
                         format!("Impossible de démarrer le module NES : {error}")
                     } else {
@@ -882,7 +904,9 @@ impl DesktopApp {
         }
 
         // Reuse the existing session when the same game is launched again.
-        if let Some((existing_id, _)) = self.session_content_paths.iter()
+        if let Some((existing_id, _)) = self
+            .session_content_paths
+            .iter()
             .find(|(_, existing_path)| *existing_path == canonical_path)
         {
             let existing_id = *existing_id;
@@ -902,7 +926,8 @@ impl DesktopApp {
                     return;
                 }
                 let _ = self.controller.close_session(existing_id);
-                self.session_content_paths.retain(|(id, _)| *id != existing_id);
+                self.session_content_paths
+                    .retain(|(id, _)| *id != existing_id);
             }
         }
 
@@ -933,7 +958,8 @@ impl DesktopApp {
                     .retain(|(session_id, _)| *session_id != id);
                 self.session_content_paths.push((id, launched_path.clone()));
                 self.validated_paths.insert(launched_path.clone());
-                let _ = validation_history::save(self.config_path.as_deref(), &self.validated_paths);
+                let _ =
+                    validation_history::save(self.config_path.as_deref(), &self.validated_paths);
                 self.message = match self.load_game_data_for_session(id) {
                     Ok(true) => {
                         if self.language == "fr" {
@@ -1244,8 +1270,14 @@ impl DesktopApp {
     }
 
     fn toggle_pause_active(&mut self) {
-        let Some(id) = self.controller.active_session() else { return; };
-        match self.controller.session_summary(id).map(|summary| summary.state) {
+        let Some(id) = self.controller.active_session() else {
+            return;
+        };
+        match self
+            .controller
+            .session_summary(id)
+            .map(|summary| summary.state)
+        {
             Ok(SessionState::Running) => self.session_action(id, SessionAction::Pause),
             Ok(SessionState::Paused) => self.session_action(id, SessionAction::Resume),
             _ => {}
@@ -1540,7 +1572,8 @@ impl eframe::App for DesktopApp {
     }
 
     fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
-        self.nes_processes.retain(|_, child| matches!(child.try_wait(), Ok(None)));
+        self.nes_processes
+            .retain(|_, child| matches!(child.try_wait(), Ok(None)));
         let update_result = match poll_background_result(&mut self.update_check_receiver) {
             Ok(result) => result,
             Err(()) => {
@@ -1874,7 +1907,9 @@ impl DesktopApp {
                 self.session_action(id, SessionAction::Reset);
             }
         }
-        if toggle_pause_requested { self.toggle_pause_active(); }
+        if toggle_pause_requested {
+            self.toggle_pause_active();
+        }
         if quick_save_requested {
             if let Some(id) = self.controller.active_session() {
                 self.quick_save_state(id);
