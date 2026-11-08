@@ -200,7 +200,7 @@ fn draw_nes_controller(
     }
 
     // D-pad with a bright silver raised surround, dark recess and sculpted cross.
-    let dc = p(0.175, 0.606);
+    let dc = p(0.193, 0.597);
     let unit = rect.height() * 0.120;
     let cross = |scale: f32| {
         let u = unit * scale;
@@ -235,16 +235,16 @@ fn draw_nes_controller(
         egui::Stroke::new(1.5_f32, egui::Color32::from_rgb(8, 9, 11)),
     ));
     let dpad = [
-        (0, r(0.175, 0.476, 0.075, 0.144)),
-        (1, r(0.175, 0.736, 0.075, 0.144)),
-        (2, r(0.105, 0.606, 0.096, 0.096)),
-        (3, r(0.245, 0.606, 0.096, 0.096)),
+        (0, r(0.193, 0.467, 0.075, 0.144)),
+        (1, r(0.193, 0.727, 0.075, 0.144)),
+        (2, r(0.123, 0.597, 0.096, 0.096)),
+        (3, r(0.263, 0.597, 0.096, 0.096)),
     ];
     let arrows = [
-        (p(0.175, 0.476), [0.0, -1.0]),
-        (p(0.175, 0.736), [0.0, 1.0]),
-        (p(0.105, 0.606), [-1.0, 0.0]),
-        (p(0.245, 0.606), [1.0, 0.0]),
+        (p(0.193, 0.467), [0.0, -1.0]),
+        (p(0.193, 0.727), [0.0, 1.0]),
+        (p(0.123, 0.597), [-1.0, 0.0]),
+        (p(0.263, 0.597), [1.0, 0.0]),
     ];
     for (center, direction) in arrows {
         let (dx, dy) = (direction[0], direction[1]);
@@ -293,7 +293,7 @@ fn draw_nes_controller(
         egui::Stroke::new(2.0_f32, egui::Color32::from_rgb(224, 226, 230)),
     );
     // Red SELECT / START legends are printed on top of the lower silver tab.
-    for (label, center) in [("SELECT", p(0.405, 0.842)), ("START", p(0.535, 0.842))] {
+    for (label, center) in [("SELECT", p(0.405, 0.815)), ("START", p(0.535, 0.815))] {
         painter.text(
             center,
             egui::Align2::CENTER_CENTER,
@@ -357,14 +357,14 @@ fn draw_nes_controller(
     }
 
     painter.text(
-        p(0.465, 0.402),
+        p(0.425, 0.414),
         egui::Align2::CENTER_CENTER,
         "Nintendo",
         egui::FontId::proportional(rect.height() * 0.087),
         logo,
     );
     painter.text(
-        p(0.465, 0.458),
+        p(0.425, 0.458),
         egui::Align2::CENTER_CENTER,
         "ENTERTAINMENT SYSTEM",
         egui::FontId::monospace(rect.height() * 0.038),
@@ -423,7 +423,7 @@ fn draw_nes_controller(
             egui::Stroke::new(1.2_f32, egui::Color32::from_rgb(116, 12, 23)),
         );
         painter.text(
-            center + egui::vec2(0.0, radius * 1.90),
+            center + egui::vec2(0.0, radius * 1.48),
             egui::Align2::CENTER_CENTER,
             label,
             egui::FontId::proportional(radius * 0.78),
