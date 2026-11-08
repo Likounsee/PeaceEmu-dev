@@ -535,7 +535,11 @@ impl DesktopApp {
                                 ui,
                                 if running {
                                     if *paused {
-                                        if french { "En pause · module NES" } else { "Paused · NES module" }
+                                        if french {
+                                            "En pause · module NES"
+                                        } else {
+                                            "Paused · NES module"
+                                        }
                                     } else if french {
                                         "En cours · module NES"
                                     } else {
@@ -613,14 +617,22 @@ impl DesktopApp {
                             if ui
                                 .add(theme::primary_button(
                                     &palette,
-                                    if french { "Relancer la session" } else { "Relaunch session" },
+                                    if french {
+                                        "Relancer la session"
+                                    } else {
+                                        "Relaunch session"
+                                    },
                                 ))
                                 .clicked()
                             {
                                 reopening_external = Some(path.clone());
                             }
                             if ui
-                                .button(if french { "Retirer de la liste" } else { "Remove session" })
+                                .button(if french {
+                                    "Retirer de la liste"
+                                } else {
+                                    "Remove session"
+                                })
                                 .clicked()
                             {
                                 removing_external = Some(path.clone());
@@ -719,7 +731,10 @@ impl DesktopApp {
                         self.message = if french {
                             format!("Jeu fermé ; session conservée pour retrouver les sauvegardes : {}.", path.display())
                         } else {
-                            format!("Game closed; session retained for its saves: {}.", path.display())
+                            format!(
+                                "Game closed; session retained for its saves: {}.",
+                                path.display()
+                            )
                         };
                     }
                     Err(error) => {
@@ -738,7 +753,11 @@ impl DesktopApp {
             self.launch_content();
         }
         if let Some(path) = removing_external {
-            if self.nes_processes.get_mut(&path).is_some_and(|process| !process.is_running()) {
+            if self
+                .nes_processes
+                .get_mut(&path)
+                .is_some_and(|process| !process.is_running())
+            {
                 self.nes_processes.remove(&path);
             }
         }
