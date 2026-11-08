@@ -17,5 +17,9 @@ dependencies = [
 ]
 
 [[package]]
+name = "windows-app-identity"
+version = "0.1.0"
+
+[[package]]
 name = "windows-durability"
 version = "0.1.0"
