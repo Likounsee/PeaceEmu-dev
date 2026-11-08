@@ -269,7 +269,7 @@ fn draw_nes_controller(
         egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(165, 168, 174)),
     );
 
-    // Printed red SELECT / START legends and the shared white recessed key bezel.
+    // Red SELECT / START legends sit above two narrow, pill-shaped rubber keys.
     for (label, center) in [("SELECT", p(0.405, 0.655)), ("START", p(0.535, 0.655))] {
         painter.text(
             center,
@@ -279,7 +279,7 @@ fn draw_nes_controller(
             logo,
         );
     }
-    let plate = r(0.465, 0.805, 0.275, 0.195);
+    let plate = r(0.465, 0.805, 0.275, 0.165);
     painter.rect_filled(
         plate.translate(egui::vec2(0.0, 2.0)),
         egui::Rounding::same(7.0),
@@ -291,28 +291,40 @@ fn draw_nes_controller(
         egui::Rounding::same(7.0),
         egui::Stroke::new(2.0_f32, egui::Color32::from_rgb(224, 226, 230)),
     );
-    let select = r(0.405, 0.805, 0.080, 0.075);
-    let start = r(0.535, 0.805, 0.080, 0.075);
+    let select = r(0.405, 0.805, 0.090, 0.050);
+    let start = r(0.535, 0.805, 0.090, 0.050);
     for button in [select, start] {
+        let rounding = egui::Rounding::same(button.height() * 0.5);
+        // Recessed socket, then the raised dark-grey rubber cap.
         painter.rect_filled(
-            button.translate(egui::vec2(0.0, 2.0)),
-            egui::Rounding::same(11.0),
-            egui::Color32::from_rgb(11, 12, 14),
+            button.expand(egui::vec2(3.0, 2.0)).translate(egui::vec2(0.0, 1.5)),
+            egui::Rounding::same(button.height() * 0.65),
+            egui::Color32::from_rgb(125, 127, 133),
+        );
+        painter.rect_filled(
+            button.expand(egui::vec2(1.5, 1.0)),
+            egui::Rounding::same(button.height() * 0.62),
+            egui::Color32::from_rgb(31, 32, 35),
+        );
+        painter.rect_filled(
+            button.translate(egui::vec2(0.0, 1.5)),
+            rounding,
+            egui::Color32::from_rgb(12, 13, 15),
         );
         painter.rect_filled(
             button,
-            egui::Rounding::same(11.0),
-            egui::Color32::from_rgb(61, 63, 68),
+            rounding,
+            egui::Color32::from_rgb(57, 59, 64),
         );
         painter.rect_stroke(
             button,
-            egui::Rounding::same(11.0),
+            rounding,
             egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(29, 30, 33)),
         );
         painter.line_segment(
             [
-                button.left_top() + egui::vec2(7.0, 4.0),
-                button.right_top() - egui::vec2(7.0, 4.0),
+                button.left_center() + egui::vec2(button.height() * 0.55, -1.0),
+                button.right_center() - egui::vec2(button.height() * 0.55, 1.0),
             ],
             egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(112, 114, 119)),
         );
