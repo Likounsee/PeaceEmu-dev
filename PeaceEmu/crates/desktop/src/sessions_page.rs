@@ -307,9 +307,9 @@ impl DesktopApp {
                     }
                     if ui
                         .button(format!(
-                                "{} (F1)",
-                                self.language_pack.text("ui.sessions_page.024")
-                            ))
+                            "{} (F1)",
+                            self.language_pack.text("ui.sessions_page.024")
+                        ))
                         .clicked()
                     {
                         self.session_action(id, SessionAction::Reset);
