@@ -544,17 +544,11 @@ impl DesktopApp {
                             })
                             .clicked()
                         {
-                            if let Some(process) = self.nes_processes.get_mut(path) {
-                                let command = if process.paused { "RESUME" } else { "PAUSE" };
-                                if process.send(command).is_ok() {
-                                    process.paused = !process.paused;
-                                }
-                            }
+                            let command = if *paused { "RESUME" } else { "PAUSE" };
+                            self.send_nes_command(path, command);
                         }
                         if ui.button("Reset (F1)").clicked() {
-                            if let Some(process) = self.nes_processes.get_mut(path) {
-                                let _ = process.send("RESET");
-                            }
+                            self.send_nes_command(path, "RESET");
                         }
                         if ui
                             .button(if french {
@@ -564,9 +558,7 @@ impl DesktopApp {
                             })
                             .clicked()
                         {
-                            if let Some(process) = self.nes_processes.get_mut(path) {
-                                let _ = process.send("SAVE_STATE");
-                            }
+                            self.send_nes_command(path, "SAVE_STATE");
                         }
                         if ui
                             .button(if french {
@@ -576,9 +568,7 @@ impl DesktopApp {
                             })
                             .clicked()
                         {
-                            if let Some(process) = self.nes_processes.get_mut(path) {
-                                let _ = process.send("LOAD_STATE");
-                            }
+                            self.send_nes_command(path, "LOAD_STATE");
                         }
                         if ui
                             .button(if french {
@@ -588,14 +578,10 @@ impl DesktopApp {
                             })
                             .clicked()
                         {
-                            if let Some(process) = self.nes_processes.get_mut(path) {
-                                let _ = process.send("FULLSCREEN");
-                            }
+                            self.send_nes_command(path, "FULLSCREEN");
                         }
                         if ui.button("Turbo x4").clicked() {
-                            if let Some(process) = self.nes_processes.get_mut(path) {
-                                let _ = process.send("TOGGLE_TURBO");
-                            }
+                            self.send_nes_command(path, "TOGGLE_TURBO");
                         }
                         if ui
                             .button(if french {
@@ -695,8 +681,7 @@ impl DesktopApp {
         // ---------------------------------------------------- Deferred actions
         if let Some(path) = closing_external {
             if let Some(mut process) = self.nes_processes.remove(&path) {
-                let _ = process.send("QUIT");
-                match process.child.wait().map(|_| ()) {
+                match process.shutdown(Duration::from_secs(2)) {
                     Ok(()) => {
                         self.message = if french {
                             format!("Session NES externe fermée : {}.", path.display())
@@ -823,8 +808,7 @@ impl DesktopApp {
                 let external_count = self.nes_processes.len();
                 let mut external_failures = Vec::new();
                 self.nes_processes.retain(|path, process| {
-                    let _ = process.send("QUIT");
-                    let result = process.child.wait().map(|_| ());
+                    let result = process.shutdown(Duration::from_secs(2));
                     if let Err(error) = result {
                         external_failures.push(format!("{}: {error}", path.display()));
                         true
