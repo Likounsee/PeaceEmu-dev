@@ -288,11 +288,7 @@ impl DesktopApp {
                             image_rect.width() * 0.031
                         };
                         let painter = ui.painter();
-                        painter.circle_filled(
-                            anchor,
-                            radius,
-                            palette.accent.linear_multiply(0.28),
-                        );
+                        painter.circle_filled(anchor, radius, palette.accent.linear_multiply(0.28));
                         painter.circle_stroke(
                             anchor,
                             radius,
@@ -301,10 +297,7 @@ impl DesktopApp {
                         painter.circle_stroke(
                             anchor,
                             radius + 4.0,
-                            egui::Stroke::new(
-                                2.0_f32,
-                                palette.accent.linear_multiply(0.55),
-                            ),
+                            egui::Stroke::new(2.0_f32, palette.accent.linear_multiply(0.55)),
                         );
 
                         ui.add_space(14.0);
@@ -359,7 +352,6 @@ impl DesktopApp {
                                 }
                             });
                     });
-
                 } else {
                     ui.label(if french {
                         "Impossible de charger NES-Controller.png depuis la racine du projet."
