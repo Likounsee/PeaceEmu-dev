@@ -137,6 +137,11 @@ impl KeyBindings {
         }
     }
 
+    /// Windows virtual-key codes in the NES module's A, B, Select, Start, Up, Down, Left, Right order.
+    pub(crate) fn nes_virtual_key_codes(&self) -> [i32; 8] {
+        [4, 5, 9, 8, 0, 1, 2, 3].map(|index| windows_virtual_key(self.keys[index]))
+    }
+
     pub(crate) fn control(&self, key: egui::Key) -> Option<InputControl> {
         self.keys
             .iter()
