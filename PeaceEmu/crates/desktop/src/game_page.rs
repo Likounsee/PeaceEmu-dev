@@ -60,26 +60,26 @@ impl DesktopApp {
                 ui.horizontal_wrapped(|ui| {
                     if state == SessionState::Running
                         && ui
-                            .button(self.language_pack.text("ui.game_page.005"))
+                            .button(format!("{} (P)", self.language_pack.text("ui.game_page.005")))
                             .clicked()
                     {
                         self.session_action(id, SessionAction::Pause);
                     } else if state == SessionState::Paused
                         && ui
-                            .button(self.language_pack.text("ui.game_page.006"))
+                            .button(format!("{} (P)", self.language_pack.text("ui.game_page.006")))
                             .clicked()
                     {
                         self.session_action(id, SessionAction::Resume);
                     }
                     if content_loaded && save_states {
                         if ui
-                            .button(self.language_pack.text("ui.game_page.007"))
+                            .button(format!("{} (F5)", self.language_pack.text("ui.game_page.007")))
                             .clicked()
                         {
                             self.save_state_action(id);
                         }
                         if ui
-                            .button(self.language_pack.text("ui.game_page.008"))
+                            .button(format!("{} (F8)", self.language_pack.text("ui.game_page.008")))
                             .clicked()
                         {
                             self.load_state_action(id);
@@ -91,17 +91,9 @@ impl DesktopApp {
                             self.session_action(id, SessionAction::StopAndSave);
                         }
                     }
-                    if content_loaded
-                        && persistent_saves
-                        && ui
-                            .button(self.language_pack.text("ui.game_page.010"))
-                            .clicked()
-                    {
-                        self.save_game_data_action(id);
-                    }
                     if state != SessionState::Empty
                         && ui
-                            .button(self.language_pack.text("ui.game_page.011"))
+                            .button(format!("{} (F1)", self.language_pack.text("ui.game_page.011")))
                             .clicked()
                     {
                         self.session_action(id, SessionAction::Reset);
