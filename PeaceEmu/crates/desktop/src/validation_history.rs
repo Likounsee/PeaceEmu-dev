@@ -24,10 +24,7 @@ pub(crate) fn load(config_file: &Path) -> HashSet<PathBuf> {
 }
 
 /// Persists successful paths independently from the ordinary UI preferences.
-pub(crate) fn save(
-    config_file: Option<&Path>,
-    paths: &HashSet<PathBuf>,
-) -> std::io::Result<()> {
+pub(crate) fn save(config_file: Option<&Path>, paths: &HashSet<PathBuf>) -> std::io::Result<()> {
     let Some(config_file) = config_file else {
         return Ok(());
     };
@@ -37,10 +34,12 @@ pub(crate) fn save(
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
-    let mut values: Vec<String> = paths.iter().map(|path| path.display().to_string()).collect();
+    let mut values: Vec<String> = paths
+        .iter()
+        .map(|path| path.display().to_string())
+        .collect();
     values.sort();
-    let bytes = serde_json::to_vec_pretty(&values)
-        .map_err(std::io::Error::other)?;
+    let bytes = serde_json::to_vec_pretty(&values).map_err(std::io::Error::other)?;
     fs::write(path, bytes)
 }
 
@@ -51,7 +50,10 @@ mod tests {
 
     #[test]
     fn successful_launch_markers_survive_reload() {
-        let nonce = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
         let root = std::env::temp_dir().join(format!("peaceemu-validation-history-{nonce}"));
         fs::create_dir_all(&root).unwrap();
         let config = root.join("preferences.json");
