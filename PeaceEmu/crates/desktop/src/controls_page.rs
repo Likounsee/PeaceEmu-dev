@@ -74,325 +74,143 @@ fn draw_nes_controller(
     palette: &theme::Palette,
     selected_action: usize,
 ) -> Option<usize> {
-    let available = ui.available_width().min(820.0);
-    let size = egui::vec2(available, (available / 2.0).min(390.0));
+    let width = ui.available_width().min(900.0);
+    let size = egui::vec2(width, width * 0.502);
     let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
     let painter = ui.painter_at(rect);
+    let p = |x: f32, y: f32| egui::pos2(rect.left() + rect.width() * x, rect.top() + rect.height() * y);
+    let r = |x: f32, y: f32, w: f32, h: f32| egui::Rect::from_center_size(p(x, y), egui::vec2(rect.width() * w, rect.height() * h));
+    let silver = egui::Color32::from_rgb(211, 213, 218);
+    let light = egui::Color32::from_rgb(246, 247, 250);
+    let dark = egui::Color32::from_rgb(29, 30, 33);
+    let red = egui::Color32::from_rgb(205, 43, 53);
+    let logo = egui::Color32::from_rgb(190, 62, 72);
 
-    let point = |x: f32, y: f32| {
-        egui::pos2(
-            rect.left() + rect.width() * x,
-            rect.top() + rect.height() * y,
-        )
-    };
-    let control_rect = |x: f32, y: f32, w: f32, h: f32| {
-        egui::Rect::from_center_size(point(x, y), egui::vec2(rect.width() * w, rect.height() * h))
-    };
+    // Raised cable arch and its socket.
+    let cable = [p(0.275, 0.205), p(0.285, 0.145), p(0.315, 0.070), p(0.365, 0.025), p(0.425, 0.008), p(0.485, 0.025), p(0.535, 0.070), p(0.575, 0.145), p(0.590, 0.205)];
+    painter.add(egui::Shape::line(cable.to_vec(), egui::Stroke::new(rect.height() * 0.085, egui::Color32::from_rgb(20, 21, 23))));
+    painter.add(egui::Shape::line(cable.iter().map(|v| *v + egui::vec2(-1.5, -2.0)).collect(), egui::Stroke::new(rect.height() * 0.012, egui::Color32::from_rgb(78, 80, 84))));
 
-    // Light-grey NES shell with a single inset charcoal control panel.
-    let shell = rect.shrink2(egui::vec2(rect.width() * 0.006, rect.height() * 0.075));
-    painter.rect_filled(
-        shell.translate(egui::vec2(0.0, 4.0)),
-        egui::Rounding::same(15.0),
-        egui::Color32::from_rgb(105, 108, 114),
-    );
-    painter.rect_filled(
-        shell,
-        egui::Rounding::same(15.0),
-        egui::Color32::from_rgb(202, 205, 210),
-    );
-    painter.rect_stroke(
-        shell,
-        egui::Rounding::same(15.0),
-        egui::Stroke::new(1.5_f32, egui::Color32::from_rgb(235, 237, 240)),
-    );
-    let face = shell.shrink2(egui::vec2(rect.width() * 0.027, rect.height() * 0.19));
-    painter.rect_filled(
-        face,
-        egui::Rounding::same(5.0),
-        egui::Color32::from_rgb(31, 32, 36),
-    );
-    painter.rect_stroke(
-        face,
-        egui::Rounding::same(5.0),
-        egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(83, 85, 91)),
-    );
+    // Wide light-grey shell, bevels and inset black front panel.
+    let shell = r(0.5, 0.595, 0.992, 0.805);
+    painter.rect_filled(shell.translate(egui::vec2(0.0, 3.5)), egui::Rounding::same(12.0), egui::Color32::from_rgb(119, 122, 129));
+    painter.rect_filled(shell, egui::Rounding::same(11.0), silver);
+    painter.rect_stroke(shell, egui::Rounding::same(11.0), egui::Stroke::new(1.4_f32, light));
+    painter.line_segment([p(0.012, 0.225), p(0.988, 0.225)], egui::Stroke::new(2.0_f32, light));
+    painter.line_segment([p(0.012, 0.965), p(0.988, 0.965)], egui::Stroke::new(1.5_f32, egui::Color32::from_rgb(139, 142, 149)));
+    let socket = r(0.278, 0.213, 0.045, 0.040);
+    painter.rect_filled(socket, egui::Rounding::same(2.0), egui::Color32::from_rgb(139, 142, 149));
+    painter.rect_filled(socket.shrink2(egui::vec2(2.0, 1.0)), egui::Rounding::same(1.5), light);
 
-    // Cable emerging from the top edge, with a dark outer stroke and highlight.
-    let cable = [
-        point(0.285, 0.075),
-        point(0.285, 0.015),
-        point(0.300, -0.015),
-        point(0.335, -0.015),
-        point(0.375, 0.015),
-        point(0.405, 0.075),
-    ];
-    painter.add(egui::Shape::line(
-        cable.to_vec(),
-        egui::Stroke::new(rect.height() * 0.075, egui::Color32::from_rgb(22, 23, 26)),
-    ));
-    painter.add(egui::Shape::line(
-        cable.iter().map(|p| *p + egui::vec2(-1.0, -1.0)).collect(),
-        egui::Stroke::new(rect.height() * 0.012, egui::Color32::from_rgb(76, 78, 83)),
-    ));
+    let face = r(0.5, 0.655, 0.936, 0.575);
+    painter.rect_filled(face, egui::Rounding::same(5.0), dark);
+    painter.rect_stroke(face, egui::Rounding::same(5.0), egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(69, 70, 74)));
 
-    // D-pad: silver raised cross, dark inset cross, and four individual hit areas.
-    let cx = point(0.175, 0.535).x;
-    let cy = point(0.175, 0.535).y;
-    let unit = rect.height() * 0.115;
-    let cross_points = |scale: f32| {
+    // Grey horizontal moulded bars visible above and below the centre controls.
+    for (y, h) in [(0.425, 0.105), (0.565, 0.095), (0.945, 0.045)] {
+        let slot = r(0.46, y, 0.285, h);
+        painter.rect_filled(slot.translate(egui::vec2(0.0, 1.5)), egui::Rounding::same(8.0), egui::Color32::from_rgb(13, 14, 16));
+        painter.rect_filled(slot, egui::Rounding::same(8.0), egui::Color32::from_rgb(177, 179, 184));
+        painter.rect_stroke(slot, egui::Rounding::same(8.0), egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(221, 223, 227)));
+    }
+
+    // D-pad with a bright silver raised surround, dark recess and sculpted cross.
+    let dc = p(0.175, 0.655);
+    let unit = rect.height() * 0.102;
+    let cross = |scale: f32| {
         let u = unit * scale;
         vec![
-            egui::pos2(cx - u * 0.38, cy - u * 1.35),
-            egui::pos2(cx + u * 0.38, cy - u * 1.35),
-            egui::pos2(cx + u * 0.38, cy - u * 0.38),
-            egui::pos2(cx + u * 1.35, cy - u * 0.38),
-            egui::pos2(cx + u * 1.35, cy + u * 0.38),
-            egui::pos2(cx + u * 0.38, cy + u * 0.38),
-            egui::pos2(cx + u * 0.38, cy + u * 1.35),
-            egui::pos2(cx - u * 0.38, cy + u * 1.35),
-            egui::pos2(cx - u * 0.38, cy + u * 0.38),
-            egui::pos2(cx - u * 1.35, cy + u * 0.38),
-            egui::pos2(cx - u * 1.35, cy - u * 0.38),
-            egui::pos2(cx - u * 0.38, cy - u * 0.38),
+            egui::pos2(dc.x-u*.39,dc.y-u*1.40), egui::pos2(dc.x+u*.39,dc.y-u*1.40),
+            egui::pos2(dc.x+u*.39,dc.y-u*.39), egui::pos2(dc.x+u*1.40,dc.y-u*.39),
+            egui::pos2(dc.x+u*1.40,dc.y+u*.39), egui::pos2(dc.x+u*.39,dc.y+u*.39),
+            egui::pos2(dc.x+u*.39,dc.y+u*1.40), egui::pos2(dc.x-u*.39,dc.y+u*1.40),
+            egui::pos2(dc.x-u*.39,dc.y+u*.39), egui::pos2(dc.x-u*1.40,dc.y+u*.39),
+            egui::pos2(dc.x-u*1.40,dc.y-u*.39), egui::pos2(dc.x-u*.39,dc.y-u*.39),
         ]
     };
-    painter.add(egui::Shape::convex_polygon(
-        cross_points(1.13),
-        egui::Color32::from_rgb(215, 217, 220),
-        egui::Stroke::new(1.5_f32, egui::Color32::from_rgb(245, 246, 248)),
-    ));
-    painter.add(egui::Shape::convex_polygon(
-        cross_points(0.96),
-        egui::Color32::from_rgb(38, 40, 44),
-        egui::Stroke::new(2.0_f32, egui::Color32::from_rgb(10, 11, 13)),
-    ));
-    let dpad_parts = [
-        (0usize, control_rect(0.175, 0.405, 0.075, 0.175)),
-        (1usize, control_rect(0.175, 0.665, 0.075, 0.175)),
-        (2usize, control_rect(0.105, 0.535, 0.105, 0.105)),
-        (3usize, control_rect(0.245, 0.535, 0.105, 0.105)),
-    ];
-    let arrow = |direction: usize| -> Vec<egui::Pos2> {
-        let c = match direction {
-            0 => point(0.175, 0.405),
-            1 => point(0.175, 0.665),
-            2 => point(0.105, 0.535),
-            _ => point(0.245, 0.535),
-        };
-        let r = rect.height() * 0.033;
-        match direction {
-            0 => vec![
-                c + egui::vec2(0.0, -r),
-                c + egui::vec2(-r, r * 0.55),
-                c + egui::vec2(r, r * 0.55),
-            ],
-            1 => vec![
-                c + egui::vec2(0.0, r),
-                c + egui::vec2(-r, -r * 0.55),
-                c + egui::vec2(r, -r * 0.55),
-            ],
-            2 => vec![
-                c + egui::vec2(-r, 0.0),
-                c + egui::vec2(r * 0.55, -r),
-                c + egui::vec2(r * 0.55, r),
-            ],
-            _ => vec![
-                c + egui::vec2(r, 0.0),
-                c + egui::vec2(-r * 0.55, -r),
-                c + egui::vec2(-r * 0.55, r),
-            ],
-        }
-    };
-    for direction in 0..4 {
-        painter.add(egui::Shape::convex_polygon(
-            arrow(direction),
-            egui::Color32::from_rgb(155, 158, 164),
-            egui::Stroke::new(0.8_f32, egui::Color32::from_rgb(8, 9, 11)),
-        ));
+    painter.add(egui::Shape::convex_polygon(cross(1.22), egui::Color32::from_rgb(185,187,192), egui::Stroke::new(2.5_f32, light)));
+    painter.add(egui::Shape::convex_polygon(cross(1.06), egui::Color32::from_rgb(15,16,18), egui::Stroke::new(2.0_f32, egui::Color32::from_rgb(92,94,99))));
+    painter.add(egui::Shape::convex_polygon(cross(0.91), egui::Color32::from_rgb(48,50,54), egui::Stroke::new(1.5_f32, egui::Color32::from_rgb(9,10,12))));
+    let dpad = [(0,r(.175,.525,.075,.155)),(1,r(.175,.785,.075,.155)),(2,r(.105,.655,.105,.105)),(3,r(.245,.655,.105,.105))];
+    let arrows = [(p(.175,.525),[0.0,-1.0]),(p(.175,.785),[0.0,1.0]),(p(.105,.655),[-1.0,0.0]),(p(.245,.655),[1.0,0.0])];
+    for (center, direction) in arrows {
+        let (dx,dy)=(direction[0],direction[1]);
+        let side=unit*.28;
+        let vertices=if dx==0.0 { vec![center+egui::vec2(0.0,dy*side),center+egui::vec2(-side*.62,-dy*side*.42),center+egui::vec2(side*.62,-dy*side*.42)] } else { vec![center+egui::vec2(dx*side,0.0),center+egui::vec2(-dx*side*.42,-side*.62),center+egui::vec2(-dx*side*.42,side*.62)] };
+        painter.add(egui::Shape::convex_polygon(vertices,egui::Color32::from_rgb(132,135,141),egui::Stroke::new(.9_f32,egui::Color32::from_rgb(5,6,8))));
     }
-    painter.circle_filled(
-        point(0.175, 0.535),
-        unit * 0.22,
-        egui::Color32::from_rgb(12, 13, 15),
-    );
-    painter.circle_stroke(
-        point(0.175, 0.535),
-        unit * 0.22,
-        egui::Stroke::new(1.2_f32, egui::Color32::from_rgb(120, 123, 129)),
-    );
+    painter.circle_filled(dc,unit*.22,egui::Color32::from_rgb(7,8,10));
+    painter.circle_filled(dc-egui::vec2(unit*.035,unit*.045),unit*.105,egui::Color32::from_rgb(151,154,160));
+    painter.circle_stroke(dc,unit*.22,egui::Stroke::new(1.0_f32,egui::Color32::from_rgb(165,168,174)));
 
-    // Select / Start sit in a shared light recessed plate, with red legends above.
-    let plate = control_rect(0.515, 0.625, 0.295, 0.205);
-    painter.rect_filled(
-        plate,
-        egui::Rounding::same(8.0),
-        egui::Color32::from_rgb(225, 226, 229),
-    );
-    painter.rect_stroke(
-        plate,
-        egui::Rounding::same(8.0),
-        egui::Stroke::new(1.5_f32, egui::Color32::from_rgb(246, 247, 249)),
-    );
-    let select_rect = control_rect(0.455, 0.635, 0.080, 0.070);
-    let start_rect = control_rect(0.575, 0.635, 0.080, 0.070);
-    for button in [select_rect, start_rect] {
-        painter.rect_filled(
-            button.translate(egui::vec2(0.0, 1.5)),
-            egui::Rounding::same(10.0),
-            egui::Color32::from_rgb(15, 16, 18),
-        );
-        painter.rect_filled(
-            button,
-            egui::Rounding::same(10.0),
-            egui::Color32::from_rgb(55, 57, 62),
-        );
-        painter.rect_stroke(
-            button,
-            egui::Rounding::same(10.0),
-            egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(25, 26, 29)),
-        );
+    // Printed red SELECT / START legends and the shared white recessed key bezel.
+    for (label,center) in [("SELECT",p(.405,.655)),("START",p(.535,.655))] {
+        painter.text(center,egui::Align2::CENTER_CENTER,label,egui::FontId::proportional(rect.height()*.060),logo);
     }
-    for (label, center) in [
-        ("SELECT", point(0.455, 0.485)),
-        ("START", point(0.575, 0.485)),
-    ] {
-        painter.text(
-            center,
-            egui::Align2::CENTER_CENTER,
-            label,
-            egui::FontId::proportional(rect.height() * 0.052),
-            egui::Color32::from_rgb(190, 66, 75),
-        );
+    let plate=r(.465,.805,.275,.195);
+    painter.rect_filled(plate.translate(egui::vec2(0.0,2.0)),egui::Rounding::same(7.0),egui::Color32::from_rgb(139,142,149));
+    painter.rect_filled(plate,egui::Rounding::same(7.0),light);
+    painter.rect_stroke(plate,egui::Rounding::same(7.0),egui::Stroke::new(2.0_f32,egui::Color32::from_rgb(224,226,230)));
+    let select=r(.405,.805,.080,.075);
+    let start=r(.535,.805,.080,.075);
+    for button in [select,start] {
+        painter.rect_filled(button.translate(egui::vec2(0.0,2.0)),egui::Rounding::same(11.0),egui::Color32::from_rgb(11,12,14));
+        painter.rect_filled(button,egui::Rounding::same(11.0),egui::Color32::from_rgb(61,63,68));
+        painter.rect_stroke(button,egui::Rounding::same(11.0),egui::Stroke::new(1.0_f32,egui::Color32::from_rgb(29,30,33)));
+        painter.line_segment([button.left_top()+egui::vec2(7.0,4.0),button.right_top()-egui::vec2(7.0,4.0)],egui::Stroke::new(1.0_f32,egui::Color32::from_rgb(112,114,119)));
     }
 
-    // Two red, raised action buttons seated in separate silver bezels.
-    let b_center = point(0.735, 0.625);
-    let a_center = point(0.865, 0.625);
-    let button_radius = rect.height() * 0.105;
-    for center in [b_center, a_center] {
-        let bezel = egui::Rect::from_center_size(
-            center,
-            egui::vec2(button_radius * 2.35, button_radius * 2.35),
-        );
-        painter.rect_filled(
-            bezel,
-            egui::Rounding::same(7.0),
-            egui::Color32::from_rgb(218, 220, 224),
-        );
-        painter.rect_stroke(
-            bezel,
-            egui::Rounding::same(7.0),
-            egui::Stroke::new(1.5_f32, egui::Color32::from_rgb(246, 247, 249)),
-        );
-        painter.circle_filled(
-            center + egui::vec2(0.0, 2.5),
-            button_radius * 1.02,
-            egui::Color32::from_rgb(88, 17, 25),
-        );
-        painter.circle_filled(
-            center,
-            button_radius * 0.91,
-            egui::Color32::from_rgb(205, 35, 48),
-        );
-        painter.circle_filled(
-            center - egui::vec2(button_radius * 0.22, button_radius * 0.25),
-            button_radius * 0.48,
-            egui::Color32::from_rgb(229, 67, 77),
-        );
-        painter.circle_stroke(
-            center,
-            button_radius * 0.91,
-            egui::Stroke::new(1.5_f32, egui::Color32::from_rgb(112, 19, 29)),
-        );
+    painter.text(p(.765,.535),egui::Align2::CENTER_CENTER,"Nintendo®",egui::FontId::proportional(rect.height()*.083),logo);
+
+    // Separate square silver wells and glossy domed red A/B caps.
+    let b=p(.700,.805);
+    let a=p(.830,.805);
+    let radius=rect.height()*.087;
+    let mut action_targets=Vec::new();
+    for center in [b,a] {
+        let bezel=egui::Rect::from_center_size(center,egui::vec2(radius*2.65,radius*2.65));
+        painter.rect_filled(bezel.translate(egui::vec2(0.0,2.0)),egui::Rounding::same(5.0),egui::Color32::from_rgb(139,142,149));
+        painter.rect_filled(bezel,egui::Rounding::same(5.0),light);
+        painter.rect_stroke(bezel,egui::Rounding::same(5.0),egui::Stroke::new(1.5_f32,egui::Color32::from_rgb(223,225,229)));
+        painter.circle_filled(center+egui::vec2(0.0,2.0),radius*1.04,egui::Color32::from_rgb(105,13,22));
+        painter.circle_filled(center,radius*.94,egui::Color32::from_rgb(181,24,36));
+        painter.circle_filled(center-egui::vec2(radius*.25,radius*.28),radius*.69,red);
+        painter.circle_filled(center-egui::vec2(radius*.30,radius*.36),radius*.27,egui::Color32::from_rgb(235,88,96));
+        painter.circle_stroke(center,radius*.94,egui::Stroke::new(1.0_f32,egui::Color32::from_rgb(125,15,26)));
+        action_targets.push(egui::Rect::from_center_size(center,egui::vec2(radius*2.4,radius*2.4)));
+    }
+    for (label,center) in [("B",p(.700,.955)),("A",p(.830,.955))] {
+        painter.text(center,egui::Align2::CENTER_CENTER,label,egui::FontId::proportional(rect.height()*.070),logo);
     }
 
-    // Nintendo wordmark and A/B legends, placed like the reference photograph.
-    painter.text(
-        point(0.755, 0.335),
-        egui::Align2::CENTER_CENTER,
-        "Nintendo®",
-        egui::FontId::proportional(rect.height() * 0.085),
-        egui::Color32::from_rgb(193, 65, 75),
-    );
-    for (label, center) in [("B", point(0.735, 0.805)), ("A", point(0.865, 0.805))] {
-        painter.text(
-            center,
-            egui::Align2::CENTER_CENTER,
-            label,
-            egui::FontId::proportional(rect.height() * 0.075),
-            egui::Color32::from_rgb(196, 65, 75),
-        );
+    let mut targets=dpad.iter().map(|(i,target)|(*i,*target)).collect::<Vec<_>>();
+    targets.extend([(9,select),(8,start),(5,action_targets[0]),(4,action_targets[1])]);
+    let mut clicked=None;
+    for (index,target) in targets {
+        let response=ui.interact(target,egui::Id::new(("nes-controller-hit-target",index)),egui::Sense::click()).on_hover_cursor(egui::CursorIcon::PointingHand);
+        if response.clicked() { clicked=Some(index); }
     }
 
-    let mut hit_targets = dpad_parts
-        .iter()
-        .map(|(index, target)| (*index, *target))
-        .collect::<Vec<_>>();
-    hit_targets.extend([(9, select_rect), (8, start_rect)]);
-    hit_targets.push((
-        5,
-        egui::Rect::from_center_size(
-            b_center,
-            egui::vec2(button_radius * 2.4, button_radius * 2.4),
-        ),
-    ));
-    hit_targets.push((
-        4,
-        egui::Rect::from_center_size(
-            a_center,
-            egui::vec2(button_radius * 2.4, button_radius * 2.4),
-        ),
-    ));
-
-    let mut clicked = None;
-    for (index, target) in hit_targets {
-        let response = ui
-            .interact(
-                target,
-                egui::Id::new(("nes-controller-hit-target", index)),
-                egui::Sense::click(),
-            )
-            .on_hover_cursor(egui::CursorIcon::PointingHand);
-        if response.clicked() {
-            clicked = Some(index);
-        }
-    }
-
-    // The selected action is highlighted on top of the exact physical control.
-    let accent_fill = palette.accent.linear_multiply(0.34);
-    let accent_stroke = egui::Stroke::new(3.0_f32, palette.accent);
+    // Selection tint overlays only the corresponding physical key.
+    let fill=palette.accent.linear_multiply(.32);
+    let stroke=egui::Stroke::new(2.5_f32,palette.accent);
     match selected_action {
-        0..=3 => {
-            if let Some((_, target)) = dpad_parts
-                .iter()
-                .find(|(index, _)| *index == selected_action)
-            {
-                painter.rect_filled(*target, egui::Rounding::same(5.0), accent_fill);
-                painter.rect_stroke(*target, egui::Rounding::same(5.0), accent_stroke);
-            }
+        0..=3 => if let Some((_,target))=dpad.iter().find(|(i,_)|*i==selected_action) {
+            painter.rect_filled(*target,egui::Rounding::same(4.0),fill);
+            painter.rect_stroke(*target,egui::Rounding::same(4.0),stroke);
+        },
+        4|5 => {
+            let center=if selected_action==4 { a } else { b };
+            painter.circle_filled(center,radius*.94,fill);
+            painter.circle_stroke(center,radius*.94,stroke);
         }
-        4 | 5 => {
-            let center = if selected_action == 4 {
-                a_center
-            } else {
-                b_center
-            };
-            painter.circle_filled(center, button_radius * 0.91, accent_fill);
-            painter.circle_stroke(center, button_radius * 0.91, accent_stroke);
+        8|9 => {
+            let target=if selected_action==8 { start } else { select };
+            painter.rect_filled(target,egui::Rounding::same(11.0),fill);
+            painter.rect_stroke(target,egui::Rounding::same(11.0),stroke);
         }
-        8 | 9 => {
-            let target = if selected_action == 8 {
-                start_rect
-            } else {
-                select_rect
-            };
-            painter.rect_filled(target, egui::Rounding::same(10.0), accent_fill);
-            painter.rect_stroke(target, egui::Rounding::same(10.0), accent_stroke);
-        }
-        _ => {}
+        _=>{}
     }
-
     clicked
 }
 
