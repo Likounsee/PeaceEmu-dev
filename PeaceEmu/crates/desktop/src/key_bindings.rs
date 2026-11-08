@@ -379,6 +379,17 @@ mod tests {
     use super::*;
 
     #[test]
+    fn nes_virtual_key_codes_follow_the_child_module_order() {
+        let mut bindings = KeyBindings { keys: DEFAULTS };
+        assert_eq!(
+            bindings.nes_virtual_key_codes(),
+            [0x5A, 0x58, 0x20, 0x0D, 0x26, 0x28, 0x25, 0x27]
+        );
+        bindings.set(4, egui::Key::Q).unwrap();
+        assert_eq!(bindings.nes_virtual_key_codes()[0], 0x51);
+    }
+
+    #[test]
     fn defaults_keep_existing_layout() {
         let bindings = KeyBindings { keys: DEFAULTS };
         assert_eq!(bindings.control(egui::Key::ArrowUp), Some(InputControl::Up));
