@@ -153,24 +153,41 @@ fn draw_nes_controller(
         egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(57, 58, 62)),
     );
 
-    // Grey horizontal moulded bars visible above and below the centre controls.
-    for (y, h) in [(0.425, 0.105), (0.565, 0.095), (0.945, 0.045)] {
-        let slot = r(0.46, y, 0.285, h);
+    // Silver inset panel, with the characteristic upper and lower centre tabs.
+    let panel = r(0.5, 0.655, 0.90, 0.515);
+    painter.rect_filled(
+        panel.translate(egui::vec2(0.0, 2.0)),
+        egui::Rounding::same(12.0),
+        egui::Color32::from_rgb(91, 93, 98),
+    );
+    painter.rect_filled(
+        panel,
+        egui::Rounding::same(12.0),
+        egui::Color32::from_rgb(205, 207, 208),
+    );
+    painter.rect_stroke(
+        panel,
+        egui::Rounding::same(12.0),
+        egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(226, 227, 228)),
+    );
+    for (y, h) in [(0.355, 0.15), (0.905, 0.105)] {
+        let tab = r(0.49, y, 0.275, h);
         painter.rect_filled(
-            slot.translate(egui::vec2(0.0, 1.5)),
+            tab.translate(egui::vec2(0.0, 2.0)),
             egui::Rounding::same(8.0),
-            egui::Color32::from_rgb(13, 14, 16),
+            egui::Color32::from_rgb(107, 108, 109),
         );
         painter.rect_filled(
-            slot,
+            tab,
             egui::Rounding::same(8.0),
-            egui::Color32::from_rgb(177, 179, 184),
+            egui::Color32::from_rgb(176, 176, 172),
         );
-        painter.rect_stroke(
-            slot,
-            egui::Rounding::same(8.0),
-            egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(221, 223, 227)),
-        );
+    }
+
+    // Three red graphic bands on the right: two broad bars and one thin stripe.
+    for (y, h) in [(0.455, 0.085), (0.605, 0.055), (0.775, 0.022)] {
+        let band = r(0.765, y, 0.335, h);
+        painter.rect_filled(band, egui::Rounding::ZERO, egui::Color32::from_rgb(232, 25, 37));
     }
 
     // D-pad with a bright silver raised surround, dark recess and sculpted cross.
@@ -271,7 +288,7 @@ fn draw_nes_controller(
     );
 
     // Red SELECT / START legends sit above two narrow, pill-shaped rubber keys.
-    for (label, center) in [("SELECT", p(0.405, 0.655)), ("START", p(0.535, 0.655))] {
+    for (label, center) in [("SELECT", p(0.405, 0.895)), ("START", p(0.535, 0.895))] {
         painter.text(
             center,
             egui::Align2::CENTER_CENTER,
@@ -280,7 +297,7 @@ fn draw_nes_controller(
             logo,
         );
     }
-    let plate = r(0.465, 0.805, 0.275, 0.165);
+    let plate = r(0.465, 0.905, 0.275, 0.105);
     painter.rect_filled(
         plate.translate(egui::vec2(0.0, 2.0)),
         egui::Rounding::same(7.0),
@@ -292,8 +309,8 @@ fn draw_nes_controller(
         egui::Rounding::same(7.0),
         egui::Stroke::new(2.0_f32, egui::Color32::from_rgb(224, 226, 230)),
     );
-    let select = r(0.405, 0.805, 0.090, 0.070);
-    let start = r(0.535, 0.805, 0.090, 0.070);
+    let select = r(0.405, 0.705, 0.090, 0.070);
+    let start = r(0.535, 0.705, 0.090, 0.070);
     for button in [select, start] {
         let rounding = egui::Rounding::same(button.height() * 0.5);
         // Recessed socket, then the raised dark-grey rubber cap.
@@ -328,16 +345,23 @@ fn draw_nes_controller(
     }
 
     painter.text(
-        p(0.765, 0.535),
+        p(0.465, 0.455),
         egui::Align2::CENTER_CENTER,
-        "Nintendo®",
-        egui::FontId::proportional(rect.height() * 0.083),
+        "Nintendo",
+        egui::FontId::proportional(rect.height() * 0.087),
         logo,
+    );
+    painter.text(
+        p(0.465, 0.515),
+        egui::Align2::CENTER_CENTER,
+        "ENTERTAINMENT SYSTEM",
+        egui::FontId::monospace(rect.height() * 0.038),
+        egui::Color32::from_rgb(18, 19, 21),
     );
 
     // Separate square silver wells and glossy domed red A/B caps.
-    let b = p(0.700, 0.805);
-    let a = p(0.830, 0.805);
+    let b = p(0.700, 0.705);
+    let a = p(0.830, 0.705);
     let radius = rect.height() * 0.087;
     let mut action_targets = Vec::new();
     for (label, center) in [("B", b), ("A", a)] {
