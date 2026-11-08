@@ -201,7 +201,8 @@ struct ExternalNesProcess {
 
 impl ExternalNesProcess {
     fn send(&mut self, command: &str) -> Result<(), String> {
-        writeln!(self.commands, "{command}").and_then(|()| self.commands.flush())
+        writeln!(self.commands, "{command}")
+            .and_then(|()| self.commands.flush())
             .map_err(|error| format!("Could not send command to NES module: {error}"))
     }
 }
@@ -894,9 +895,14 @@ impl DesktopApp {
                         self.message = "Could not open the NES module command channel.".to_owned();
                         return;
                     };
-                    self.nes_processes.insert(canonical_path.clone(), ExternalNesProcess {
-                        child, commands, paused: false,
-                    });
+                    self.nes_processes.insert(
+                        canonical_path.clone(),
+                        ExternalNesProcess {
+                            child,
+                            commands,
+                            paused: false,
+                        },
+                    );
                     self.controller
                         .library_mut()
                         .record_validation(&canonical_path, ContentValidation::Accepted);
