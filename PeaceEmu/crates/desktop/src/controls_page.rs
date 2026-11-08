@@ -202,22 +202,6 @@ fn draw_nes_controller(
     // D-pad with a bright silver raised surround, dark recess and sculpted cross.
     let dc = p(0.175, 0.606);
     let unit = rect.height() * 0.120;
-    let dpad_well = egui::Rect::from_center_size(dc, egui::vec2(unit * 3.55, unit * 3.55));
-    painter.rect_filled(
-        dpad_well.translate(egui::vec2(0.0, 2.0)),
-        egui::Rounding::same(7.0),
-        egui::Color32::from_rgb(8, 9, 11),
-    );
-    painter.rect_filled(
-        dpad_well,
-        egui::Rounding::same(7.0),
-        egui::Color32::from_rgb(33, 34, 38),
-    );
-    painter.rect_stroke(
-        dpad_well,
-        egui::Rounding::same(7.0),
-        egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(74, 76, 81)),
-    );
     let cross = |scale: f32| {
         let u = unit * scale;
         vec![
@@ -237,18 +221,18 @@ fn draw_nes_controller(
     };
     painter.add(egui::Shape::convex_polygon(
         cross(1.22),
-        egui::Color32::from_rgb(185, 187, 192),
-        egui::Stroke::new(2.5_f32, light),
+        egui::Color32::from_rgb(18, 19, 21),
+        egui::Stroke::new(3.0_f32, egui::Color32::from_rgb(5, 6, 8)),
     ));
     painter.add(egui::Shape::convex_polygon(
         cross(1.06),
-        egui::Color32::from_rgb(15, 16, 18),
-        egui::Stroke::new(2.0_f32, egui::Color32::from_rgb(92, 94, 99)),
+        egui::Color32::from_rgb(43, 45, 49),
+        egui::Stroke::new(2.0_f32, egui::Color32::from_rgb(105, 107, 112)),
     ));
     painter.add(egui::Shape::convex_polygon(
         cross(0.91),
-        egui::Color32::from_rgb(48, 50, 54),
-        egui::Stroke::new(1.5_f32, egui::Color32::from_rgb(9, 10, 12)),
+        egui::Color32::from_rgb(35, 37, 41),
+        egui::Stroke::new(1.5_f32, egui::Color32::from_rgb(8, 9, 11)),
     ));
     let dpad = [
         (0, r(0.175, 0.476, 0.075, 0.144)),
@@ -320,36 +304,57 @@ fn draw_nes_controller(
     );
     let select = r(0.405, 0.705, 0.090, 0.070);
     let start = r(0.535, 0.705, 0.090, 0.070);
+    // SELECT and START are narrow rubber capsules mounted diagonally at 45°.
+    let axis = egui::vec2(0.70710677, -0.70710677);
+    let normal = egui::vec2(0.70710677, 0.70710677);
     for button in [select, start] {
-        let rounding = egui::Rounding::same(button.height() * 0.5);
-        // Recessed socket, then the raised dark-grey rubber cap.
-        painter.rect_filled(
-            button.expand(3.0).translate(egui::vec2(0.0, 1.5)),
-            egui::Rounding::same(button.height() * 0.65),
-            egui::Color32::from_rgb(125, 127, 133),
-        );
-        painter.rect_filled(
-            button.expand(1.5),
-            egui::Rounding::same(button.height() * 0.62),
-            egui::Color32::from_rgb(31, 32, 35),
-        );
-        painter.rect_filled(
-            button.translate(egui::vec2(0.0, 1.5)),
-            rounding,
-            egui::Color32::from_rgb(12, 13, 15),
-        );
-        painter.rect_filled(button, rounding, egui::Color32::from_rgb(57, 59, 64));
-        painter.rect_stroke(
-            button,
-            rounding,
-            egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(29, 30, 33)),
-        );
+        let center = button.center();
+        let cap_radius = button.height() * 0.5;
+        let half_straight = (button.width() * 0.5 - cap_radius).max(0.0);
+        let capsule = |radius: f32, offset: egui::Vec2| {
+            let c = center + offset;
+            let mut points = Vec::with_capacity(18);
+            for step in 0..=8 {
+                let angle = -std::f32::consts::FRAC_PI_2
+                    + std::f32::consts::PI * step as f32 / 8.0;
+                points.push(
+                    c + axis * (half_straight + radius * angle.cos())
+                        + normal * (radius * angle.sin()),
+                );
+            }
+            for step in 0..=8 {
+                let angle = std::f32::consts::FRAC_PI_2
+                    + std::f32::consts::PI * step as f32 / 8.0;
+                points.push(
+                    c - axis * half_straight
+                        + axis * (radius * angle.cos())
+                        + normal * (radius * angle.sin()),
+                );
+            }
+            points
+        };
+        // Dark recessed socket, lower shadow and the raised charcoal key.
+        painter.add(egui::Shape::convex_polygon(
+            capsule(cap_radius + 4.0, egui::vec2(0.0, 2.0)),
+            egui::Color32::from_rgb(7, 8, 10),
+            egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(4, 5, 7)),
+        ));
+        painter.add(egui::Shape::convex_polygon(
+            capsule(cap_radius + 1.5, egui::Vec2::ZERO),
+            egui::Color32::from_rgb(23, 24, 27),
+            egui::Stroke::new(1.5_f32, egui::Color32::from_rgb(100, 102, 107)),
+        ));
+        painter.add(egui::Shape::convex_polygon(
+            capsule(cap_radius - 1.0, egui::vec2(0.0, 1.0)),
+            egui::Color32::from_rgb(47, 49, 53),
+            egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(15, 16, 18)),
+        ));
         painter.line_segment(
             [
-                button.left_center() + egui::vec2(button.height() * 0.55, -1.0),
-                button.right_center() - egui::vec2(button.height() * 0.55, 1.0),
+                center - axis * (half_straight * 0.75) - normal * (cap_radius * 0.35),
+                center + axis * (half_straight * 0.75) - normal * (cap_radius * 0.35),
             ],
-            egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(112, 114, 119)),
+            egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(111, 113, 118)),
         );
     }
 
