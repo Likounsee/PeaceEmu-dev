@@ -18,6 +18,7 @@ pub(crate) struct SavedPreferences {
     pub(crate) accent_rgb: [u8; 3],
     pub(crate) paths: Vec<PathBuf>,
     pub(crate) language: String,
+    pub(crate) turbo_speed: f32,
 }
 
 pub(crate) fn config_file_path() -> Option<PathBuf> {
@@ -145,6 +146,7 @@ fn parse_preferences(contents: &str) -> std::io::Result<SavedPreferences> {
     let mut paths = Vec::new();
     let mut seen_paths = HashSet::new();
     let mut language = system_language();
+    let mut turbo_speed = 4.0_f32;
     for line in contents.lines() {
         if let Some(value) = line.strip_prefix("version=") {
             if value != "1" && value != "2" && value != "3" {
@@ -175,6 +177,12 @@ fn parse_preferences(contents: &str) -> std::io::Result<SavedPreferences> {
                     accent_rgb = [r, g, b];
                 }
             }
+        } else if let Some(value) = line.strip_prefix("turbo_speed=") {
+            if let Ok(parsed) = value.parse::<f32>() {
+                if parsed.is_finite() {
+                    turbo_speed = parsed.clamp(0.5, 4.0);
+                }
+            }
         } else if let Some(value) = line.strip_prefix("language=") {
             language = if value.eq_ignore_ascii_case("fr") {
                 "fr"
@@ -200,6 +208,7 @@ fn parse_preferences(contents: &str) -> std::io::Result<SavedPreferences> {
         accent_rgb,
         paths,
         language,
+        turbo_speed,
     })
 }
 
@@ -220,6 +229,26 @@ pub(crate) fn write_preferences_with_language(
     ui_scale: f32,
     accent_rgb: [u8; 3],
     language: &str,
+    paths: &[PathBuf],
+) -> std::io::Result<()> {
+    write_preferences_with_language_and_turbo(
+        path,
+        dark_mode,
+        ui_scale,
+        accent_rgb,
+        language,
+        4.0,
+        paths,
+    )
+}
+
+pub(crate) fn write_preferences_with_language_and_turbo(
+    path: &Path,
+    dark_mode: bool,
+    ui_scale: f32,
+    accent_rgb: [u8; 3],
+    language: &str,
+    turbo_speed: f32,
     paths: &[PathBuf],
 ) -> std::io::Result<()> {
     let parent = path.parent().ok_or_else(|| {
@@ -243,13 +272,18 @@ pub(crate) fn write_preferences_with_language(
     // Serialize only the two supported language identifiers. Writing the raw
     // value would allow a newline in an unexpected caller-provided string to
     // inject additional preference keys into the config file.
+    let turbo_speed = if turbo_speed.is_finite() {
+        turbo_speed.clamp(0.5, 4.0)
+    } else {
+        4.0
+    };
     let language = if language.eq_ignore_ascii_case("fr") {
         "fr"
     } else {
         "en"
     };
     let mut contents = format!(
-        "version=3\ndark={dark_mode}\nscale={ui_scale:.3}\naccent={:02X}{:02X}{:02X}\nlanguage={}\n",
+        "version=3\ndark={dark_mode}\nscale={ui_scale:.3}\naccent={:02X}{:02X}{:02X}\nlanguage={}\nturbo_speed={turbo_speed:.1}\n",
         accent_rgb[0], accent_rgb[1], accent_rgb[2], language
     );
     for path in paths {
