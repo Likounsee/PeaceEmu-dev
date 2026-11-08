@@ -122,7 +122,12 @@ fn draw_nes_controller(
 
     // Four recessed case screws: dark wells, metallic heads and a fine slot.
     // They sit in the exposed grey plastic, like the original two-piece shell.
-    for (x, y) in [(0.025, 0.285), (0.975, 0.285), (0.025, 0.965), (0.975, 0.965)] {
+    for (x, y) in [
+        (0.025, 0.285),
+        (0.975, 0.285),
+        (0.025, 0.965),
+        (0.975, 0.965),
+    ] {
         let center = p(x, y);
         let screw_radius = rect.height() * 0.014;
         painter.circle_filled(
