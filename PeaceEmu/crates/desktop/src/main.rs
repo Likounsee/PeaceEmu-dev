@@ -1845,8 +1845,10 @@ impl DesktopApp {
                             egui::Key::F11 if pressed => fullscreen_toggle_requested = true,
                             egui::Key::Tab => turbo_change = Some(pressed),
                             _ => {
-                                if let Some(control) = self.control_for_active_session(key) {
-                                    input_events.push((control, pressed));
+                                if self.active_page == DesktopPage::Game {
+                                    if let Some(control) = self.control_for_active_session(key) {
+                                        input_events.push((control, pressed));
+                                    }
                                 }
                             }
                         }
@@ -1940,7 +1942,7 @@ impl DesktopApp {
             elapsed = elapsed.saturating_mul(4);
         }
 
-        if self.active_page == DesktopPage::Game && !self.game_window_open {
+        if matches!(self.active_page, DesktopPage::Game | DesktopPage::Sessions) && !self.game_window_open {
             let (events, modifiers) =
                 context.input(|input| (input.events.clone(), input.modifiers));
             let mut input_events = Vec::new();
