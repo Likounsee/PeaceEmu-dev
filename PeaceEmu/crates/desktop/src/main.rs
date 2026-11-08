@@ -919,8 +919,20 @@ impl DesktopApp {
                 };
                 return;
             };
+            let config_path = self.config_path.clone();
+            let nes_keys = self
+                .key_bindings
+                .entry("nes".to_owned())
+                .or_insert_with(|| key_bindings::KeyBindings::load(config_path.as_deref(), "nes"))
+                .nes_virtual_key_codes()
+                .iter()
+                .map(i32::to_string)
+                .collect::<Vec<_>>()
+                .join(",");
             match Command::new(executable)
                 .arg(&canonical_path)
+                .arg("--keys")
+                .arg(nes_keys)
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::null())
@@ -1173,18 +1185,47 @@ impl DesktopApp {
         let Some(bindings) = self.key_bindings.get(module_id) else {
             return;
         };
-        if let Err(error) = bindings.save(self.config_path.as_deref(), module_id) {
-            self.message = if self.language == "fr" {
-                format!("Impossible d’enregistrer les touches : {error}")
-            } else {
-                format!("Could not save key bindings: {error}")
-            };
-        } else {
-            self.message = if self.language == "fr" {
-                "Configuration des touches enregistrée.".to_owned()
-            } else {
-                "Keyboard bindings saved.".to_owned()
-            };
+        let save_result = bindings.save(self.config_path.as_deref(), module_id);
+        let nes_keys = (module_id == "nes").then(|| {
+            bindings
+                .nes_virtual_key_codes()
+                .iter()
+                .map(i32::to_string)
+                .collect::<Vec<_>>()
+                .join(",")
+        });
+        match save_result {
+            Err(error) => {
+                self.message = if self.language == "fr" {
+                    format!("Impossible d’enregistrer les touches : {error}")
+                } else {
+                    format!("Could not save key bindings: {error}")
+                };
+                return;
+            }
+            Ok(()) => {
+                self.message = if self.language == "fr" {
+                    "Configuration des touches enregistrée.".to_owned()
+                } else {
+                    "Keyboard bindings saved.".to_owned()
+                };
+            }
+        }
+        if let Some(keys) = nes_keys {
+            let command = format!("KEYS {keys}");
+            let mut first_error = None;
+            for process in self.nes_processes.values_mut() {
+                if let Err(error) = process.send(&command) {
+                    first_error.get_or_insert(error);
+                }
+            }
+            if let Some(error) = first_error {
+                self.message = if self.language == "fr" {
+                    format!("Touches enregistrées, mais le module NES n’a pas reçu la mise à jour : {error}")
+                } else {
+                    format!("Bindings saved, but the NES module did not receive the update: {error}")
+                };
+            }
         }
     }
 
