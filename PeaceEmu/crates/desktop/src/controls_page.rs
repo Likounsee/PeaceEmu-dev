@@ -67,7 +67,6 @@ fn keycap(
         .on_hover_cursor(egui::CursorIcon::PointingHand)
 }
 
-
 /// Approximate centers of the eight physical NES controls in normalized image coordinates.
 fn nes_button_anchor(index: usize, rect: egui::Rect) -> egui::Pos2 {
     let (x, y) = match index {
