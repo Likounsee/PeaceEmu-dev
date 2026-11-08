@@ -75,7 +75,7 @@ fn draw_nes_controller(
     selected_action: usize,
 ) -> Option<usize> {
     let width = ui.available_width().min(900.0);
-    let size = egui::vec2(width, width * 0.502);
+    let size = egui::vec2(width, width * 0.430);
     let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
     let painter = ui.painter_at(rect);
     let p = |x: f32, y: f32| {
@@ -174,7 +174,7 @@ fn draw_nes_controller(
 
     // D-pad with a bright silver raised surround, dark recess and sculpted cross.
     let dc = p(0.175, 0.655);
-    let unit = rect.height() * 0.102;
+    let unit = rect.height() * 0.130;
     let dpad_well = egui::Rect::from_center_size(dc, egui::vec2(unit * 3.55, unit * 3.55));
     painter.rect_filled(
         dpad_well.translate(egui::vec2(0.0, 2.0)),
@@ -291,8 +291,8 @@ fn draw_nes_controller(
         egui::Rounding::same(7.0),
         egui::Stroke::new(2.0_f32, egui::Color32::from_rgb(224, 226, 230)),
     );
-    let select = r(0.405, 0.805, 0.090, 0.050);
-    let start = r(0.535, 0.805, 0.090, 0.050);
+    let select = r(0.405, 0.805, 0.090, 0.070);
+    let start = r(0.535, 0.805, 0.090, 0.070);
     for button in [select, start] {
         let rounding = egui::Rounding::same(button.height() * 0.5);
         // Recessed socket, then the raised dark-grey rubber cap.
