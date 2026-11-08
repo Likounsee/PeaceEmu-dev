@@ -233,7 +233,7 @@ impl DesktopApp {
                     ui.horizontal_top(|ui| {
                         ui.add_space(4.0);
                         let image_response =
-                            ui.add(egui::Image::new(*texture).fit_to_exact_size(display_size));
+                            ui.add(egui::Image::new(&*texture).fit_to_exact_size(display_size));
                         image_rect = image_response.rect;
                         ui.add_space(12.0);
                         ui.vertical(|ui| {
