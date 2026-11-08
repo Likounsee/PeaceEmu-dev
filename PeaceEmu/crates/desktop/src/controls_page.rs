@@ -154,7 +154,7 @@ fn draw_nes_controller(
     );
 
     // Silver inset panel, with the characteristic upper and lower centre tabs.
-    let panel = r(0.5, 0.655, 0.90, 0.515);
+    let panel = r(0.5, 0.60, 0.90, 0.515);
     painter.rect_filled(
         panel.translate(egui::vec2(0.0, 2.0)),
         egui::Rounding::same(12.0),
