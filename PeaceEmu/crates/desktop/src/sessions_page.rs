@@ -145,7 +145,6 @@ impl DesktopApp {
             let state = summary.state;
             let content_loaded = summary.content_loaded;
             let save_states = summary.save_states;
-            let persistent_saves = summary.persistent_saves;
             let system_name = summary.system_name;
             let video_available = summary.video_available;
             let audio_available = summary.audio_available;
