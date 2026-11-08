@@ -315,16 +315,14 @@ fn draw_nes_controller(
             let c = center + offset;
             let mut points = Vec::with_capacity(18);
             for step in 0..=8 {
-                let angle = -std::f32::consts::FRAC_PI_2
-                    + std::f32::consts::PI * step as f32 / 8.0;
+                let angle = -std::f32::consts::FRAC_PI_2 + std::f32::consts::PI * step as f32 / 8.0;
                 points.push(
                     c + axis * (half_straight + radius * angle.cos())
                         + normal * (radius * angle.sin()),
                 );
             }
             for step in 0..=8 {
-                let angle = std::f32::consts::FRAC_PI_2
-                    + std::f32::consts::PI * step as f32 / 8.0;
+                let angle = std::f32::consts::FRAC_PI_2 + std::f32::consts::PI * step as f32 / 8.0;
                 points.push(
                     c - axis * half_straight
                         + axis * (radius * angle.cos())
