@@ -82,7 +82,7 @@ impl DesktopApp {
         let external_sessions: Vec<_> = self
             .nes_processes
             .iter()
-            .map(|(path, child)| (path.clone(), child.id()))
+            .map(|(path, process)| (path.clone(), process.child.id(), process.paused))
             .collect();
         let session_count = self.controller.session_count() + external_sessions.len();
         let mut close_all = false;
@@ -495,7 +495,7 @@ impl DesktopApp {
                 },
                 external_sessions.len(),
             );
-            for (path, process_id) in &external_sessions {
+            for (path, process_id, paused) in &external_sessions {
                 let title = path
                     .file_stem()
                     .map(|name| name.to_string_lossy().into_owned())
@@ -531,15 +531,33 @@ impl DesktopApp {
                             .size(12.0)
                             .color(palette.text_dim),
                     );
-                    ui.horizontal(|ui| {
-                        if ui
-                            .button(if french {
-                                "Fermer le jeu"
-                            } else {
-                                "Close game"
-                            })
-                            .clicked()
-                        {
+                    ui.horizontal_wrapped(|ui| {
+                        if ui.button(if *paused {
+                            if french { "Reprendre (P)" } else { "Resume (P)" }
+                        } else {
+                            if french { "Pause (P)" } else { "Pause (P)" }
+                        }).clicked() {
+                            if let Some(process) = self.nes_processes.get_mut(path) {
+                                let command = if process.paused { "RESUME" } else { "PAUSE" };
+                                if process.send(command).is_ok() { process.paused = !process.paused; }
+                            }
+                        }
+                        if ui.button("Reset (F1)").clicked() {
+                            if let Some(process) = self.nes_processes.get_mut(path) { let _ = process.send("RESET"); }
+                        }
+                        if ui.button(if french { "Sauver l'état (F5)" } else { "Save state (F5)" }).clicked() {
+                            if let Some(process) = self.nes_processes.get_mut(path) { let _ = process.send("SAVE_STATE"); }
+                        }
+                        if ui.button(if french { "Restaurer (F8)" } else { "Load state (F8)" }).clicked() {
+                            if let Some(process) = self.nes_processes.get_mut(path) { let _ = process.send("LOAD_STATE"); }
+                        }
+                        if ui.button(if french { "Plein écran (F11)" } else { "Fullscreen (F11)" }).clicked() {
+                            if let Some(process) = self.nes_processes.get_mut(path) { let _ = process.send("FULLSCREEN"); }
+                        }
+                        if ui.button(if french { "Turbo x4" } else { "Turbo x4" }).clicked() {
+                            if let Some(process) = self.nes_processes.get_mut(path) { let _ = process.send("TOGGLE_TURBO"); }
+                        }
+                        if ui.button(if french { "Fermer le jeu" } else { "Close game" }).clicked() {
                             closing_external = Some(path.clone());
                         }
                         ui.label(
@@ -629,8 +647,9 @@ impl DesktopApp {
 
         // ---------------------------------------------------- Deferred actions
         if let Some(path) = closing_external {
-            if let Some(mut child) = self.nes_processes.remove(&path) {
-                match child.kill().and_then(|()| child.wait().map(|_| ())) {
+            if let Some(mut process) = self.nes_processes.remove(&path) {
+                let _ = process.send("QUIT");
+                match process.child.kill().and_then(|()| process.child.wait().map(|_| ())) {
                     Ok(()) => {
                         self.message = if french {
                             format!("Session NES externe fermée : {}.", path.display())
@@ -639,7 +658,7 @@ impl DesktopApp {
                         };
                     }
                     Err(error) => {
-                        self.nes_processes.insert(path, child);
+                        self.nes_processes.insert(path, process);
                         self.message = if french {
                             format!("Impossible de fermer le module NES : {error}")
                         } else {
