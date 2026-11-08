@@ -86,25 +86,64 @@ fn draw_nes_controller(
     let red = egui::Color32::from_rgb(205, 43, 53);
     let logo = egui::Color32::from_rgb(190, 62, 72);
 
-    // Raised cable arch and its socket.
-    let cable = [p(0.275, 0.205), p(0.285, 0.145), p(0.315, 0.070), p(0.365, 0.025), p(0.425, 0.008), p(0.485, 0.025), p(0.535, 0.070), p(0.575, 0.145), p(0.590, 0.205)];
-    painter.add(egui::Shape::line(cable.to_vec(), egui::Stroke::new(rect.height() * 0.085, egui::Color32::from_rgb(20, 21, 23))));
-    painter.add(egui::Shape::line(cable.iter().map(|v| *v + egui::vec2(-1.5, -2.0)).collect(), egui::Stroke::new(rect.height() * 0.012, egui::Color32::from_rgb(78, 80, 84))));
-
-    // Wide light-grey shell, bevels and inset black front panel.
+    // Moulded plastic shell: soft outer shadow, dark lower edge and stepped
+    // highlights create a physical bevel without using a controller bitmap.
     let shell = r(0.5, 0.595, 0.992, 0.805);
-    painter.rect_filled(shell.translate(egui::vec2(0.0, 3.5)), egui::Rounding::same(12.0), egui::Color32::from_rgb(119, 122, 129));
-    painter.rect_filled(shell, egui::Rounding::same(11.0), silver);
-    painter.rect_stroke(shell, egui::Rounding::same(11.0), egui::Stroke::new(1.4_f32, light));
-    painter.line_segment([p(0.012, 0.225), p(0.988, 0.225)], egui::Stroke::new(2.0_f32, light));
-    painter.line_segment([p(0.012, 0.965), p(0.988, 0.965)], egui::Stroke::new(1.5_f32, egui::Color32::from_rgb(139, 142, 149)));
-    let socket = r(0.278, 0.213, 0.045, 0.040);
-    painter.rect_filled(socket, egui::Rounding::same(2.0), egui::Color32::from_rgb(139, 142, 149));
-    painter.rect_filled(socket.shrink2(egui::vec2(2.0, 1.0)), egui::Rounding::same(1.5), light);
-
+    painter.rect_filled(
+        shell.translate(egui::vec2(0.0, 5.0)),
+        egui::Rounding::same(18.0),
+        egui::Color32::from_rgb(76, 78, 83),
+    );
+    painter.rect_filled(
+        shell.translate(egui::vec2(0.0, 2.5)),
+        egui::Rounding::same(17.0),
+        egui::Color32::from_rgb(151, 153, 159),
+    );
+    painter.rect_filled(
+        shell,
+        egui::Rounding::same(17.0),
+        egui::Color32::from_rgb(220, 222, 226),
+    );
+    painter.rect_stroke(
+        shell,
+        egui::Rounding::same(17.0),
+        egui::Stroke::new(1.5, egui::Color32::from_rgb(250, 250, 251)),
+    );
+    let inner_shell = shell.shrink2(egui::vec2(3.0, 3.0));
+    painter.rect_stroke(
+        inner_shell,
+        egui::Rounding::same(14.0),
+        egui::Stroke::new(1.0, egui::Color32::from_rgb(187, 189, 194)),
+    );
+    // Fine mould lines on the top and bottom edges of the casing.
+    painter.line_segment(
+        [p(0.035, 0.245), p(0.965, 0.245)],
+        egui::Stroke::new(1.0, egui::Color32::from_rgb(194, 196, 201)),
+    );
+    painter.line_segment(
+        [p(0.035, 0.945), p(0.965, 0.945)],
+        egui::Stroke::new(1.0, egui::Color32::from_rgb(174, 176, 182)),
+    );
     let face = r(0.5, 0.655, 0.936, 0.575);
-    painter.rect_filled(face, egui::Rounding::same(5.0), dark);
-    painter.rect_stroke(face, egui::Rounding::same(5.0), egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(69, 70, 74)));
+    painter.rect_filled(
+        face.translate(egui::vec2(0.0, 2.5)),
+        egui::Rounding::same(7.0),
+        egui::Color32::from_rgb(8, 9, 11),
+    );
+    painter.rect_filled(
+        face,
+        egui::Rounding::same(7.0),
+        egui::Color32::from_rgb(24, 25, 28),
+    );
+    painter.rect_stroke(
+        face,
+        egui::Rounding::same(7.0),
+        egui::Stroke::new(1.2, egui::Color32::from_rgb(91, 92, 96)),
+    );
+    painter.line_segment(
+        [face.left_top() + egui::vec2(8.0, 4.0), face.right_top() + egui::vec2(-8.0, 4.0)],
+        egui::Stroke::new(1.0, egui::Color32::from_rgb(57, 58, 62)),
+    );
 
     // Grey horizontal moulded bars visible above and below the centre controls.
     for (y, h) in [(0.425, 0.105), (0.565, 0.095), (0.945, 0.045)] {
@@ -117,6 +156,25 @@ fn draw_nes_controller(
     // D-pad with a bright silver raised surround, dark recess and sculpted cross.
     let dc = p(0.175, 0.655);
     let unit = rect.height() * 0.102;
+    let dpad_well = egui::Rect::from_center_size(
+        dc,
+        egui::vec2(unit * 3.55, unit * 3.55),
+    );
+    painter.rect_filled(
+        dpad_well.translate(egui::vec2(0.0, 2.0)),
+        egui::Rounding::same(7.0),
+        egui::Color32::from_rgb(8, 9, 11),
+    );
+    painter.rect_filled(
+        dpad_well,
+        egui::Rounding::same(7.0),
+        egui::Color32::from_rgb(33, 34, 38),
+    );
+    painter.rect_stroke(
+        dpad_well,
+        egui::Rounding::same(7.0),
+        egui::Stroke::new(1.0, egui::Color32::from_rgb(74, 76, 81)),
+    );
     let cross = |scale: f32| {
         let u = unit * scale;
         vec![
@@ -172,11 +230,43 @@ fn draw_nes_controller(
         painter.rect_filled(bezel.translate(egui::vec2(0.0,2.0)),egui::Rounding::same(5.0),egui::Color32::from_rgb(139,142,149));
         painter.rect_filled(bezel,egui::Rounding::same(5.0),light);
         painter.rect_stroke(bezel,egui::Rounding::same(5.0),egui::Stroke::new(1.5_f32,egui::Color32::from_rgb(223,225,229)));
-        painter.circle_filled(center+egui::vec2(0.0,2.0),radius*1.04,egui::Color32::from_rgb(105,13,22));
-        painter.circle_filled(center,radius*0.94,egui::Color32::from_rgb(181,24,36));
-        painter.circle_filled(center-egui::vec2(radius*0.25,radius*0.28),radius*0.69,red);
-        painter.circle_filled(center-egui::vec2(radius*0.30,radius*0.36),radius*0.27,egui::Color32::from_rgb(235,88,96));
-        painter.circle_stroke(center,radius*0.94,egui::Stroke::new(1.0_f32,egui::Color32::from_rgb(125,15,26)));
+        // Deep square socket, dark rubber shadow and a domed red cap with
+        // several restrained specular layers to suggest curved plastic.
+        painter.rect_filled(
+            bezel.shrink(5.0).translate(egui::vec2(0.0, 2.5)),
+            egui::Rounding::same(4.0),
+            egui::Color32::from_rgb(112, 114, 119),
+        );
+        painter.circle_filled(
+            center + egui::vec2(0.0, 3.0),
+            radius * 1.05,
+            egui::Color32::from_rgb(83, 10, 18),
+        );
+        painter.circle_filled(
+            center,
+            radius * 0.99,
+            egui::Color32::from_rgb(139, 17, 29),
+        );
+        painter.circle_filled(
+            center - egui::vec2(0.0, radius * 0.07),
+            radius * 0.91,
+            egui::Color32::from_rgb(190, 27, 39),
+        );
+        painter.circle_filled(
+            center - egui::vec2(radius * 0.20, radius * 0.30),
+            radius * 0.58,
+            egui::Color32::from_rgb(215, 48, 57),
+        );
+        painter.circle_filled(
+            center - egui::vec2(radius * 0.29, radius * 0.39),
+            radius * 0.20,
+            egui::Color32::from_rgb(244, 111, 115),
+        );
+        painter.circle_stroke(
+            center,
+            radius * 0.98,
+            egui::Stroke::new(1.2, egui::Color32::from_rgb(116, 12, 23)),
+        );
         action_targets.push(egui::Rect::from_center_size(center,egui::vec2(radius*2.4,radius*2.4)));
     }
     for (label,center) in [("B",p(0.700,0.955)),("A",p(0.830,0.955))] {
