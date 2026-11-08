@@ -297,14 +297,12 @@ fn draw_nes_controller(
         let rounding = egui::Rounding::same(button.height() * 0.5);
         // Recessed socket, then the raised dark-grey rubber cap.
         painter.rect_filled(
-            button
-                .expand(egui::vec2(3.0, 2.0))
-                .translate(egui::vec2(0.0, 1.5)),
+            button.expand(3.0).translate(egui::vec2(0.0, 1.5)),
             egui::Rounding::same(button.height() * 0.65),
             egui::Color32::from_rgb(125, 127, 133),
         );
         painter.rect_filled(
-            button.expand(egui::vec2(1.5, 1.0)),
+            button.expand(1.5),
             egui::Rounding::same(button.height() * 0.62),
             egui::Color32::from_rgb(31, 32, 35),
         );
@@ -341,7 +339,7 @@ fn draw_nes_controller(
     let a = p(0.830, 0.805);
     let radius = rect.height() * 0.087;
     let mut action_targets = Vec::new();
-    for center in [b, a] {
+    for (label, center) in [("B", b), ("A", a)] {
         let bezel = egui::Rect::from_center_size(center, egui::vec2(radius * 2.65, radius * 2.65));
         painter.rect_filled(
             bezel.translate(egui::vec2(0.0, 2.0)),
@@ -387,21 +385,18 @@ fn draw_nes_controller(
             radius * 0.98,
             egui::Stroke::new(1.2_f32, egui::Color32::from_rgb(116, 12, 23)),
         );
+        painter.text(
+            center + egui::vec2(0.0, radius * 0.06),
+            egui::Align2::CENTER_CENTER,
+            label,
+            egui::FontId::proportional(radius * 0.70),
+            egui::Color32::from_rgb(255, 238, 231),
+        );
         action_targets.push(egui::Rect::from_center_size(
             center,
             egui::vec2(radius * 2.4, radius * 2.4),
         ));
     }
-    for (label, center) in [("B", p(0.700, 0.955)), ("A", p(0.830, 0.955))] {
-        painter.text(
-            center,
-            egui::Align2::CENTER_CENTER,
-            label,
-            egui::FontId::proportional(rect.height() * 0.070),
-            logo,
-        );
-    }
-
     let mut targets = dpad
         .iter()
         .map(|(i, target)| (*i, *target))
