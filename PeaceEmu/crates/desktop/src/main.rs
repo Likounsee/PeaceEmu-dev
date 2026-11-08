@@ -350,7 +350,7 @@ impl DesktopApp {
         let host = HostRuntime::new(HostRuntimeConfig::default())?;
         let mut controller = ApplicationController::new(host);
         let config_path = config_file_path();
-        let mut validated_paths = config_path.as_deref().map(validation_history::load).unwrap_or_default();
+        let validated_paths = config_path.as_deref().map(validation_history::load).unwrap_or_default();
         let mut dark_mode = true;
         let mut language = preferences::system_language();
         let mut accent_color = theme::DEFAULT_ACCENT;
