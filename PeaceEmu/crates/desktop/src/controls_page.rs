@@ -290,7 +290,7 @@ impl DesktopApp {
                         ui.painter().circle_stroke(
                             anchor,
                             radius,
-                            egui::Stroke::new(3.0, palette.accent),
+                            egui::Stroke::new(3.0_f32, palette.accent),
                         );
                         ui.painter().circle_filled(anchor, 4.0, palette.accent);
 
@@ -357,7 +357,7 @@ impl DesktopApp {
                         let end = *target;
                         let bend = egui::pos2(start.x, (start.y + end.y) * 0.5);
                         ui.painter()
-                            .line_segment([start, bend], egui::Stroke::new(1.5, palette.accent));
+                            .line_segment([start, bend], egui::Stroke::new(1.5_f32, palette.accent));
                         ui.painter().arrow(
                             bend,
                             end - bend,
