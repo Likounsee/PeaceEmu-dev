@@ -426,7 +426,7 @@ mod tests {
     fn assigns_function_and_extended_egui_keys() {
         let mut bindings = KeyBindings { keys: DEFAULTS };
         bindings.assign_or_swap(4, egui::Key::F13).unwrap();
-        assert_eq!(windows_virtual_key(bindings.keys[0]), 0x7C);
+        assert_eq!(windows_virtual_key(bindings.keys[4]), 0x7C);
         assert_eq!(bindings.label(4), "F13");
         assert_eq!(parse_key("F24"), Some(egui::Key::F24));
         assert_eq!(parse_key("Questionmark"), Some(egui::Key::Questionmark));
