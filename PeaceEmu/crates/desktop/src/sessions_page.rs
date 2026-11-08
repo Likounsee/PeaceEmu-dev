@@ -75,20 +75,23 @@ impl DesktopApp {
     pub(super) fn show_sessions(&mut self, ui: &mut egui::Ui) {
         let palette = theme::Palette::new(self.dark_mode, self.accent_color);
         let french = self.language == "fr";
-        // External modules own their own runtime and window. Reap exited processes
-        // here so the session list always reflects the actual process state.
-        self.nes_processes
-            .retain(|_, process| matches!(process.child.try_wait(), Ok(None)));
+        // Keep a stopped external session visible: its state file and battery RAM
+        // remain available, and the user can relaunch or explicitly remove it.
         let external_sessions: Vec<_> = self
             .nes_processes
-            .iter()
-            .map(|(path, process)| (path.clone(), process.child.id(), process.paused))
+            .iter_mut()
+            .map(|(path, process)| {
+                process.poll_exit();
+                (path.clone(), process.process_id(), process.paused)
+            })
             .collect();
         let session_count = self.controller.session_count() + external_sessions.len();
         let mut close_all = false;
         let mut closing: Option<SessionId> = None;
         let mut opening: Option<SessionId> = None;
         let mut closing_external: Option<PathBuf> = None;
+        let mut reopening_external: Option<PathBuf> = None;
+        let mut removing_external: Option<PathBuf> = None;
 
         theme::page_header(
             ui,
@@ -488,14 +491,36 @@ impl DesktopApp {
             section_title(
                 ui,
                 &palette,
-                if french {
-                    "Modules externes en cours"
-                } else {
-                    "External modules running"
-                },
+                if french { "Sessions NES" } else { "NES sessions" },
                 external_sessions.len(),
             );
+            let mut next_turbo_speed = self.nes_turbo_speed;
+            let mut turbo_speed_changed = false;
+            theme::card(ui, &palette, |ui| {
+                ui.set_width(ui.available_width());
+                ui.horizontal(|ui| {
+                    ui.label(if french { "Vitesse turbo" } else { "Turbo speed" });
+                    let slider = egui::Slider::new(&mut next_turbo_speed, 0.5..=4.0)
+                        .step_by(0.1)
+                        .show_value(false);
+                    turbo_speed_changed = ui.add(slider).changed();
+                    ui.label(egui::RichText::new(format!("{:.1}×", next_turbo_speed)).strong());
+                });
+                ui.label(
+                    egui::RichText::new(if french {
+                        "Réglage appliqué aux sessions NES actives et conservé pour les prochains lancements."
+                    } else {
+                        "Applied to active NES sessions and remembered for future launches."
+                    })
+                    .size(12.0)
+                    .color(palette.text_dim),
+                );
+            });
+            if turbo_speed_changed {
+                self.set_nes_turbo_speed(next_turbo_speed);
+            }
             for (path, process_id, paused) in &external_sessions {
+                let running = process_id.is_some();
                 let title = path
                     .file_stem()
                     .map(|name| name.to_string_lossy().into_owned())
@@ -508,22 +533,32 @@ impl DesktopApp {
                             ui.label(egui::RichText::new(&title).size(16.0).strong());
                             theme::badge(
                                 ui,
-                                if french {
-                                    "En cours · module NES"
+                                if running {
+                                    if *paused {
+                                        if french { "En pause · module NES" } else { "Paused · NES module" }
+                                    } else if french {
+                                        "En cours · module NES"
+                                    } else {
+                                        "Running · NES module"
+                                    }
+                                } else if french {
+                                    "Arrêtée · sauvegardes conservées"
                                 } else {
-                                    "Running · NES module"
+                                    "Stopped · saves retained"
                                 },
-                                palette.success,
+                                if running { if *paused { palette.warning } else { palette.success } } else { palette.text_dim },
                             );
-                            ui.label(
-                                egui::RichText::new(if french {
-                                    format!("Processus externe · PID {process_id}")
-                                } else {
-                                    format!("External process · PID {process_id}")
-                                })
-                                .size(13.0)
-                                .color(palette.text_dim),
-                            );
+                            if let Some(process_id) = process_id {
+                                ui.label(
+                                    egui::RichText::new(if french {
+                                        format!("Processus externe · PID {process_id}")
+                                    } else {
+                                        format!("External process · PID {process_id}")
+                                    })
+                                    .size(13.0)
+                                    .color(palette.text_dim),
+                                );
+                            }
                         });
                     });
                     ui.label(
@@ -532,72 +567,70 @@ impl DesktopApp {
                             .color(palette.text_dim),
                     );
                     ui.horizontal_wrapped(|ui| {
-                        if ui
-                            .button(if *paused {
-                                if french {
-                                    "Reprendre (P)"
+                        if running {
+                            if ui
+                                .button(if *paused {
+                                    if french { "Reprendre (P)" } else { "Resume (P)" }
                                 } else {
-                                    "Resume (P)"
-                                }
-                            } else {
-                                "Pause (P)"
-                            })
-                            .clicked()
-                        {
-                            let command = if *paused { "RESUME" } else { "PAUSE" };
-                            self.send_nes_command(path, command);
-                        }
-                        if ui.button("Reset (F1)").clicked() {
-                            self.send_nes_command(path, "RESET");
-                        }
-                        if ui
-                            .button(if french {
-                                "Sauver l'état (F5)"
-                            } else {
-                                "Save state (F5)"
-                            })
-                            .clicked()
-                        {
-                            self.send_nes_command(path, "SAVE_STATE");
-                        }
-                        if ui
-                            .button(if french {
-                                "Restaurer (F8)"
-                            } else {
-                                "Load state (F8)"
-                            })
-                            .clicked()
-                        {
-                            self.send_nes_command(path, "LOAD_STATE");
-                        }
-                        if ui
-                            .button(if french {
-                                "Plein écran (F11)"
-                            } else {
-                                "Fullscreen (F11)"
-                            })
-                            .clicked()
-                        {
-                            self.send_nes_command(path, "FULLSCREEN");
-                        }
-                        if ui.button("Turbo x4").clicked() {
-                            self.send_nes_command(path, "TOGGLE_TURBO");
-                        }
-                        if ui
-                            .button(if french {
-                                "Fermer le jeu"
-                            } else {
-                                "Close game"
-                            })
-                            .clicked()
-                        {
-                            closing_external = Some(path.clone());
+                                    "Pause (P)"
+                                })
+                                .clicked()
+                            {
+                                let command = if *paused { "RESUME" } else { "PAUSE" };
+                                self.send_nes_command(path, command);
+                            }
+                            if ui.button("Reset (F1)").clicked() {
+                                self.send_nes_command(path, "RESET");
+                            }
+                            if ui
+                                .button(if french { "Sauver l'état (F5)" } else { "Save state (F5)" })
+                                .clicked()
+                            {
+                                self.send_nes_command(path, "SAVE_STATE");
+                            }
+                            if ui
+                                .button(if french { "Restaurer (F8)" } else { "Load state (F8)" })
+                                .clicked()
+                            {
+                                self.send_nes_command(path, "LOAD_STATE");
+                            }
+                            if ui
+                                .button(if french { "Plein écran (F11)" } else { "Fullscreen (F11)" })
+                                .clicked()
+                            {
+                                self.send_nes_command(path, "FULLSCREEN");
+                            }
+                            if ui.button("Turbo").clicked() {
+                                self.send_nes_command(path, "TOGGLE_TURBO");
+                            }
+                            if ui
+                                .button(if french { "Fermer le jeu" } else { "Close game" })
+                                .clicked()
+                            {
+                                closing_external = Some(path.clone());
+                            }
+                        } else {
+                            if ui
+                                .add(theme::primary_button(
+                                    &palette,
+                                    if french { "Relancer la session" } else { "Relaunch session" },
+                                ))
+                                .clicked()
+                            {
+                                reopening_external = Some(path.clone());
+                            }
+                            if ui
+                                .button(if french { "Retirer de la liste" } else { "Remove session" })
+                                .clicked()
+                            {
+                                removing_external = Some(path.clone());
+                            }
                         }
                         ui.label(
                             egui::RichText::new(if french {
-                                "Géré par son module indépendant"
+                                "Module indépendant · état conservé automatiquement"
                             } else {
-                                "Managed by its standalone module"
+                                "Standalone module · state is kept automatically"
                             })
                             .size(12.0)
                             .color(palette.text_dim),
@@ -680,17 +713,16 @@ impl DesktopApp {
 
         // ---------------------------------------------------- Deferred actions
         if let Some(path) = closing_external {
-            if let Some(mut process) = self.nes_processes.remove(&path) {
+            if let Some(process) = self.nes_processes.get_mut(&path) {
                 match process.shutdown(Duration::from_secs(2)) {
                     Ok(()) => {
                         self.message = if french {
-                            format!("Session NES externe fermée : {}.", path.display())
+                            format!("Jeu fermé ; session conservée pour retrouver les sauvegardes : {}.", path.display())
                         } else {
-                            format!("Closed external NES session: {}.", path.display())
+                            format!("Game closed; session retained for its saves: {}.", path.display())
                         };
                     }
                     Err(error) => {
-                        self.nes_processes.insert(path, process);
                         self.message = if french {
                             format!("Impossible de fermer le module NES : {error}")
                         } else {
@@ -698,6 +730,16 @@ impl DesktopApp {
                         };
                     }
                 }
+            }
+        }
+
+        if let Some(path) = reopening_external {
+            self.content_path = path.display().to_string();
+            self.launch_content();
+        }
+        if let Some(path) = removing_external {
+            if self.nes_processes.get_mut(&path).is_some_and(|process| !process.is_running()) {
+                self.nes_processes.remove(&path);
             }
         }
 
