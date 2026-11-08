@@ -7,7 +7,7 @@
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::error::Error;
-use std::io::Write;
+use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{self, Receiver, TryRecvError};
@@ -196,6 +196,7 @@ fn poll_background_result<T>(receiver: &mut Option<Receiver<T>>) -> Result<Optio
 struct ExternalNesProcess {
     child: Child,
     commands: ChildStdin,
+    events: Receiver<String>,
     paused: bool,
 }
 
@@ -204,6 +205,42 @@ impl ExternalNesProcess {
         writeln!(self.commands, "{command}")
             .and_then(|()| self.commands.flush())
             .map_err(|error| format!("Could not send command to NES module: {error}"))
+    }
+
+    fn shutdown(&mut self, timeout: Duration) -> Result<(), String> {
+        // Ask the module to close its own window and flush persistent data first.
+        let _ = self.send("QUIT");
+        let started = Instant::now();
+        loop {
+            match self.child.try_wait() {
+                Ok(Some(_)) => return Ok(()),
+                Ok(None) => {}
+                Err(error) => return Err(format!("Could not inspect NES module process: {error}")),
+            }
+            if started.elapsed() >= timeout {
+                self.child
+                    .kill()
+                    .map_err(|error| format!("Could not stop unresponsive NES module: {error}"))?;
+                self.child
+                    .wait()
+                    .map_err(|error| format!("Could not reap NES module process: {error}"))?;
+                return Ok(());
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+}
+
+impl DesktopApp {
+    pub(super) fn send_nes_command(&mut self, path: &Path, command: &str) {
+        let result = self
+            .nes_processes
+            .get_mut(path)
+            .ok_or_else(|| "The NES module session is no longer running.".to_owned())
+            .and_then(|process| process.send(command));
+        if let Err(error) = result {
+            self.message = error;
+        }
     }
 }
 
@@ -885,21 +922,43 @@ impl DesktopApp {
             match Command::new(executable)
                 .arg(&canonical_path)
                 .stdin(Stdio::piped())
-                .stdout(Stdio::null())
+                .stdout(Stdio::piped())
                 .stderr(Stdio::null())
                 .spawn()
             {
                 Ok(mut child) => {
                     let Some(commands) = child.stdin.take() else {
                         let _ = child.kill();
+                        let _ = child.wait();
                         self.message = "Could not open the NES module command channel.".to_owned();
                         return;
                     };
+                    let Some(output) = child.stdout.take() else {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        self.message = "Could not open the NES module status channel.".to_owned();
+                        return;
+                    };
+                    let (event_sender, events) = mpsc::channel();
+                    std::thread::spawn(move || {
+                        for line in BufReader::new(output).lines() {
+                            match line {
+                                Ok(line) if line.len() <= 2048 => {
+                                    if event_sender.send(line).is_err() {
+                                        break;
+                                    }
+                                }
+                                Ok(_) => continue,
+                                Err(_) => break,
+                            }
+                        }
+                    });
                     self.nes_processes.insert(
                         canonical_path.clone(),
                         ExternalNesProcess {
                             child,
                             commands,
+                            events,
                             paused: false,
                         },
                     );
@@ -1604,15 +1663,43 @@ impl eframe::App for DesktopApp {
             eprintln!("PeaceEmu: could not release held inputs on exit: {error}");
         }
         for process in self.nes_processes.values_mut() {
-            let _ = process.send("QUIT");
-            let _ = process.child.kill();
-            let _ = process.child.wait();
+            if let Err(error) = process.shutdown(Duration::from_secs(2)) {
+                eprintln!("PeaceEmu: could not stop NES module cleanly: {error}");
+            }
         }
         self.nes_processes.clear();
         self.controller.close_all_sessions();
     }
 
     fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
+        let mut latest_external_event = None;
+        for (path, process) in self.nes_processes.iter_mut() {
+            while let Ok(event) = process.events.try_recv() {
+                match event.as_str() {
+                    "EVENT|STATE|PAUSED" => process.paused = true,
+                    "EVENT|STATE|RUNNING" => process.paused = false,
+                    _ => {}
+                }
+                if !event.starts_with("EVENT|STATE|") {
+                    latest_external_event = Some((path.clone(), event));
+                }
+            }
+        }
+        if let Some((path, event)) = latest_external_event {
+            let game = path
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+                .unwrap_or_else(|| path.display().to_string());
+            let detail = event
+                .strip_prefix("EVENT|")
+                .unwrap_or(&event)
+                .replace('|', ": ");
+            self.message = if self.language == "fr" {
+                format!("Module NES · {game} : {detail}")
+            } else {
+                format!("NES module · {game}: {detail}")
+            };
+        }
         self.nes_processes
             .retain(|_, process| matches!(process.child.try_wait(), Ok(None)));
         let update_result = match poll_background_result(&mut self.update_check_receiver) {
