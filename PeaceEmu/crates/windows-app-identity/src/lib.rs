@@ -11,7 +11,9 @@ pub fn set_current_process_app_user_model_id(app_id: &str) -> Result<(), String>
         || app_id.contains('\0')
         || app_id.chars().any(char::is_control)
     {
-        return Err("AppUserModelID must contain 1 to 128 non-control UTF-16 characters.".to_owned());
+        return Err(
+            "AppUserModelID must contain 1 to 128 non-control UTF-16 characters.".to_owned(),
+        );
     }
 
     #[cfg(windows)]
@@ -29,7 +31,10 @@ pub fn set_current_process_app_user_model_id(app_id: &str) -> Result<(), String>
         if result >= 0 {
             Ok(())
         } else {
-            Err(format!("SetCurrentProcessExplicitAppUserModelID failed (HRESULT 0x{:08X}).", result as u32))
+            Err(format!(
+                "SetCurrentProcessExplicitAppUserModelID failed (HRESULT 0x{:08X}).",
+                result as u32
+            ))
         }
     }
 
