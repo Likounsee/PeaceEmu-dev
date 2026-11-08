@@ -67,23 +67,207 @@ fn keycap(
         .on_hover_cursor(egui::CursorIcon::PointingHand)
 }
 
-/// Approximate centers of the eight physical NES controls in normalized image coordinates.
-fn nes_button_anchor(index: usize, rect: egui::Rect) -> egui::Pos2 {
-    // Coordinates are measured against the supplied 2400x1340 controller artwork.
-    let (x, y) = match index {
-        0 => (0.193, 0.455), // Up
-        1 => (0.193, 0.735), // Down
-        2 => (0.132, 0.595), // Left
-        3 => (0.255, 0.595), // Right
-        4 => (0.830, 0.690), // A
-        5 => (0.700, 0.690), // B
-        8 => (0.525, 0.680), // Start
-        _ => (0.418, 0.680), // Select
+/// Draws a fully native NES controller with egui primitives (no bitmap texture).
+/// Returns the physical action clicked by the user, if any.
+fn draw_nes_controller(
+    ui: &mut egui::Ui,
+    palette: &theme::Palette,
+    selected_action: usize,
+) -> Option<usize> {
+    let available = ui.available_width().min(820.0);
+    let size = egui::vec2(available, (available / 2.25).min(360.0));
+    let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
+    let painter = ui.painter_at(rect);
+
+    let shell = rect.shrink2(egui::vec2(rect.width() * 0.015, rect.height() * 0.07));
+    let frame = shell.shrink2(egui::vec2(rect.width() * 0.035, rect.height() * 0.075));
+    let face = frame.shrink2(egui::vec2(rect.width() * 0.012, rect.height() * 0.025));
+
+    painter.rect_filled(
+        shell.translate(egui::vec2(0.0, 3.0)),
+        egui::Rounding::same(24.0),
+        egui::Color32::from_rgb(95, 99, 106),
+    );
+    painter.rect_filled(
+        shell,
+        egui::Rounding::same(24.0),
+        egui::Color32::from_rgb(185, 190, 197),
+    );
+    painter.rect_stroke(
+        shell,
+        egui::Rounding::same(24.0),
+        egui::Stroke::new(2.0, egui::Color32::from_rgb(115, 120, 128)),
+    );
+    painter.rect_filled(
+        frame,
+        egui::Rounding::same(18.0),
+        egui::Color32::from_rgb(27, 29, 34),
+    );
+    painter.rect_filled(
+        face,
+        egui::Rounding::same(13.0),
+        egui::Color32::from_rgb(211, 214, 218),
+    );
+
+    let point = |x: f32, y: f32| {
+        egui::pos2(
+            rect.left() + rect.width() * x,
+            rect.top() + rect.height() * y,
+        )
     };
-    egui::pos2(
-        rect.left() + rect.width() * x,
-        rect.top() + rect.height() * y,
-    )
+    let control_rect = |x: f32, y: f32, w: f32, h: f32| {
+        egui::Rect::from_center_size(
+            point(x, y),
+            egui::vec2(rect.width() * w, rect.height() * h),
+        )
+    };
+
+    // D-pad: four distinct, clickable directions around a dark central hub.
+    let dpad_parts = [
+        (0usize, control_rect(0.225, 0.365, 0.075, 0.205)),
+        (1usize, control_rect(0.225, 0.635, 0.075, 0.205)),
+        (2usize, control_rect(0.155, 0.500, 0.105, 0.115)),
+        (3usize, control_rect(0.295, 0.500, 0.105, 0.115)),
+    ];
+    let dpad_color = egui::Color32::from_rgb(34, 36, 41);
+    for (_, part) in dpad_parts {
+        painter.rect_filled(part, egui::Rounding::same(5.0), dpad_color);
+        painter.rect_stroke(
+            part,
+            egui::Rounding::same(5.0),
+            egui::Stroke::new(1.0, egui::Color32::from_rgb(12, 13, 16)),
+        );
+    }
+    painter.circle_filled(point(0.225, 0.5), rect.height() * 0.047, dpad_color);
+    painter.circle_stroke(
+        point(0.225, 0.5),
+        rect.height() * 0.047,
+        egui::Stroke::new(1.0, egui::Color32::from_rgb(12, 13, 16)),
+    );
+
+    // Select and Start are separate dark, slightly rounded oblong switches.
+    let select_rect = control_rect(0.405, 0.625, 0.105, 0.075);
+    let start_rect = control_rect(0.535, 0.625, 0.105, 0.075);
+    for button in [select_rect, start_rect] {
+        painter.rect_filled(
+            button,
+            egui::Rounding::same(8.0),
+            egui::Color32::from_rgb(43, 45, 50),
+        );
+        painter.rect_stroke(
+            button,
+            egui::Rounding::same(8.0),
+            egui::Stroke::new(1.0, egui::Color32::from_rgb(15, 16, 19)),
+        );
+    }
+
+    // The two iconic red action buttons.
+    let b_center = point(0.690, 0.625);
+    let a_center = point(0.815, 0.625);
+    let button_radius = rect.height() * 0.105;
+    for center in [b_center, a_center] {
+        painter.circle_filled(
+            center + egui::vec2(0.0, 2.0),
+            button_radius + 2.0,
+            egui::Color32::from_rgb(80, 25, 28),
+        );
+        painter.circle_filled(
+            center,
+            button_radius,
+            egui::Color32::from_rgb(190, 38, 48),
+        );
+        painter.circle_stroke(
+            center,
+            button_radius,
+            egui::Stroke::new(2.0, egui::Color32::from_rgb(105, 24, 30)),
+        );
+    }
+
+    // Console branding and control labels.
+    painter.text(
+        point(0.515, 0.285),
+        egui::Align2::CENTER_CENTER,
+        "NINTENDO",
+        egui::FontId::proportional(rect.height() * 0.075),
+        egui::Color32::from_rgb(55, 58, 64),
+    );
+    painter.text(
+        point(0.515, 0.365),
+        egui::Align2::CENTER_CENTER,
+        "ENTERTAINMENT SYSTEM",
+        egui::FontId::proportional(rect.height() * 0.027),
+        egui::Color32::from_rgb(75, 78, 84),
+    );
+    for (label, center) in [("SELECT", point(0.405, 0.735)), ("START", point(0.535, 0.735))] {
+        painter.text(
+            center,
+            egui::Align2::CENTER_CENTER,
+            label,
+            egui::FontId::proportional(rect.height() * 0.034),
+            egui::Color32::from_rgb(55, 57, 62),
+        );
+    }
+    for (label, center) in [("B", b_center), ("A", a_center)] {
+        painter.text(
+            center,
+            egui::Align2::CENTER_CENTER,
+            label,
+            egui::FontId::proportional(rect.height() * 0.11),
+            egui::Color32::WHITE,
+        );
+    }
+
+    let mut hit_targets = dpad_parts
+        .iter()
+        .map(|(index, target)| (*index, *target))
+        .collect::<Vec<_>>();
+    hit_targets.extend([(9, select_rect), (8, start_rect)]);
+    hit_targets.push((5, egui::Rect::from_center_size(b_center, egui::vec2(button_radius * 2.4, button_radius * 2.4))));
+    hit_targets.push((4, egui::Rect::from_center_size(a_center, egui::vec2(button_radius * 2.4, button_radius * 2.4))));
+
+    let mut clicked = None;
+    for (index, target) in hit_targets {
+        let response = ui
+            .interact(
+                target,
+                egui::Id::new(("nes-controller-hit-target", index)),
+                egui::Sense::click(),
+            )
+            .on_hover_cursor(egui::CursorIcon::PointingHand);
+        if response.clicked() {
+            clicked = Some(index);
+        }
+    }
+
+    // Selection glow follows the actual shape of the chosen control.
+    let accent_fill = palette.accent.linear_multiply(0.30);
+    let accent_stroke = egui::Stroke::new(3.0, palette.accent);
+    match selected_action {
+        0..=3 => {
+            if let Some((_, target)) = dpad_parts.iter().find(|(index, _)| *index == selected_action) {
+                painter.rect_filled(*target, egui::Rounding::same(5.0), accent_fill);
+                painter.rect_stroke(*target, egui::Rounding::same(5.0), accent_stroke);
+            }
+        }
+        4 | 5 => {
+            let center = if selected_action == 4 { a_center } else { b_center };
+            painter.circle_filled(center, button_radius, accent_fill);
+            painter.circle_stroke(center, button_radius, accent_stroke);
+            painter.circle_stroke(
+                center,
+                button_radius + 5.0,
+                egui::Stroke::new(2.0, palette.accent.linear_multiply(0.55)),
+            );
+        }
+        8 | 9 => {
+            let target = if selected_action == 8 { start_rect } else { select_rect };
+            painter.rect_filled(target, egui::Rounding::same(8.0), accent_fill);
+            painter.rect_stroke(target, egui::Rounding::same(8.0), accent_stroke);
+        }
+        _ => {}
+    }
+
+    clicked
 }
 
 impl DesktopApp {
@@ -178,35 +362,6 @@ impl DesktopApp {
             .as_ref()
             .and_then(|(id, index)| (id == &selected).then_some(*index));
 
-        // The NES image is bundled from the repository root and cached by egui.
-        let controller_texture = if selected == "nes" {
-            let texture_id = egui::Id::new("nes-controller-settings-texture");
-            let cached: Option<egui::TextureHandle> =
-                ui.ctx().data_mut(|data| data.get_temp(texture_id));
-            if let Some(texture) = cached {
-                Some(texture)
-            } else {
-                match image::load_from_memory(include_bytes!("../../../../NES-Controller.png")) {
-                    Ok(decoded) => {
-                        let rgba = decoded.to_rgba8();
-                        let size = [rgba.width() as usize, rgba.height() as usize];
-                        let color_image =
-                            egui::ColorImage::from_rgba_unmultiplied(size, rgba.as_raw());
-                        let texture = ui.ctx().load_texture(
-                            "nes-controller-settings",
-                            color_image,
-                            egui::TextureOptions::LINEAR,
-                        );
-                        ui.ctx()
-                            .data_mut(|data| data.insert_temp(texture_id, texture.clone()));
-                        Some(texture)
-                    }
-                    Err(_) => None,
-                }
-            }
-        } else {
-            None
-        };
 
         let action_id = egui::Id::new(("controls-selected-action", selected.as_str()));
         let mut selected_action: usize = ui.data_mut(|data| data.get_temp(action_id)).unwrap_or(0);
@@ -222,144 +377,77 @@ impl DesktopApp {
         theme::card(ui, &palette, |ui| {
             ui.set_width(ui.available_width());
             if selected == "nes" {
-                if let Some(texture) = controller_texture.as_ref() {
-                    // Keep the supplied controller artwork intact: it is the
-                    // visual reference, not a shape to be approximated in egui.
-                    let image_size = texture.size_vec2();
-                    let mut image_rect = egui::Rect::NOTHING;
-
-                    ui.vertical_centered(|ui| {
-                        ui.label(
-                            egui::RichText::new(if french {
-                                "Manette NES — Joueur 1"
-                            } else {
-                                "NES controller — Player 1"
-                            })
-                            .strong()
-                            .size(16.0)
-                            .color(palette.text),
-                        );
-                        ui.add_space(10.0);
-
-                        let max_width = ui.available_width().min(820.0);
-                        let max_height = (max_width / (image_size.x / image_size.y)).min(460.0);
-                        let scale = (max_width / image_size.x)
-                            .min(max_height / image_size.y)
-                            .max(0.01);
-                        let display_size = image_size * scale;
-                        let response =
-                            ui.add(egui::Image::new(&*texture).fit_to_exact_size(display_size));
-                        image_rect = response.rect;
-
-                        // The artwork itself is interactive: invisible hit areas sit
-                        // over the eight physical controls, so users can select a
-                        // button directly instead of having to find its list entry.
-                        for index in [0usize, 1, 2, 3, 4, 5, 8, 9] {
-                            let anchor = nes_button_anchor(index, image_rect);
-                            let hit_size = if index == 4 || index == 5 {
-                                egui::vec2(image_rect.width() * 0.075, image_rect.height() * 0.15)
-                            } else if index == 8 || index == 9 {
-                                egui::vec2(image_rect.width() * 0.065, image_rect.height() * 0.13)
-                            } else {
-                                egui::vec2(image_rect.width() * 0.075, image_rect.height() * 0.15)
-                            };
-                            let hit = ui
-                                .interact(
-                                    egui::Rect::from_center_size(anchor, hit_size),
-                                    egui::Id::new(("nes-controller-hit-target", index)),
-                                    egui::Sense::click(),
-                                )
-                                .on_hover_cursor(egui::CursorIcon::PointingHand);
-                            if hit.clicked() {
-                                selected_action = index;
-                                clicked = Some(index);
-                            }
-                        }
-
-                        // Highlight the selected physical control directly on the
-                        // artwork. A translucent fill and soft outer rings make it
-                        // visible without hiding the original controller details.
-                        let anchor = nes_button_anchor(selected_action, image_rect);
-                        let radius = if selected_action == 4 || selected_action == 5 {
-                            image_rect.width() * 0.036
-                        } else if selected_action == 8 || selected_action == 9 {
-                            image_rect.width() * 0.025
+                ui.vertical_centered(|ui| {
+                    ui.label(
+                        egui::RichText::new(if french {
+                            "Manette NES — Joueur 1"
                         } else {
-                            image_rect.width() * 0.031
-                        };
-                        let painter = ui.painter();
-                        painter.circle_filled(anchor, radius, palette.accent.linear_multiply(0.28));
-                        painter.circle_stroke(
-                            anchor,
-                            radius,
-                            egui::Stroke::new(3.0_f32, palette.accent),
-                        );
-                        painter.circle_stroke(
-                            anchor,
-                            radius + 4.0,
-                            egui::Stroke::new(2.0_f32, palette.accent.linear_multiply(0.55)),
-                        );
+                            "NES controller — Player 1"
+                        })
+                        .strong()
+                        .size(16.0)
+                        .color(palette.text),
+                    );
+                    ui.add_space(10.0);
 
-                        ui.add_space(14.0);
-                        ui.label(
-                            egui::RichText::new(if french {
-                                "Affectation des touches"
-                            } else {
-                                "Keyboard mapping"
-                            })
-                            .strong()
-                            .color(palette.text_dim),
-                        );
-                        ui.add_space(8.0);
+                    if let Some(index) = draw_nes_controller(ui, &palette, selected_action) {
+                        selected_action = index;
+                        clicked = Some(index);
+                    }
 
-                        egui::Grid::new("nes-controller-key-mapping")
-                            .num_columns(4)
-                            .spacing(egui::vec2(14.0, 10.0))
-                            .show(ui, |ui| {
-                                for (position, index) in
-                                    [0usize, 1, 2, 3, 4, 5, 8, 9].into_iter().enumerate()
-                                {
-                                    let (fr, en) = key_bindings::ACTIONS[index];
-                                    ui.vertical_centered(|ui| {
-                                        let selected_row = selected_action == index;
-                                        let label = ui.selectable_label(
-                                            selected_row,
-                                            if french { fr } else { en },
-                                        );
-                                        if label.clicked() {
-                                            selected_action = index;
-                                        }
+                    ui.add_space(14.0);
+                    ui.label(
+                        egui::RichText::new(if french {
+                            "Affectation des touches"
+                        } else {
+                            "Keyboard mapping"
+                        })
+                        .strong()
+                        .color(palette.text_dim),
+                    );
+                    ui.add_space(8.0);
 
-                                        let is_capturing = capturing == Some(index);
-                                        let text = if is_capturing {
-                                            if french {
-                                                "Appuyez…".to_owned()
-                                            } else {
-                                                "Press…".to_owned()
-                                            }
-                                        } else {
-                                            labels.get(index).cloned().unwrap_or_default()
-                                        };
-                                        let response = keycap(ui, &palette, &text, is_capturing);
-                                        if response.clicked() {
-                                            selected_action = index;
-                                            clicked = Some(index);
-                                        }
-                                    });
-                                    if position % 4 == 3 {
-                                        ui.end_row();
+                    egui::Grid::new("nes-controller-key-mapping")
+                        .num_columns(4)
+                        .spacing(egui::vec2(14.0, 10.0))
+                        .show(ui, |ui| {
+                            for (position, index) in
+                                [0usize, 1, 2, 3, 4, 5, 8, 9].into_iter().enumerate()
+                            {
+                                let (fr, en) = key_bindings::ACTIONS[index];
+                                ui.vertical_centered(|ui| {
+                                    let selected_row = selected_action == index;
+                                    let label = ui.selectable_label(
+                                        selected_row,
+                                        if french { fr } else { en },
+                                    );
+                                    if label.clicked() {
+                                        selected_action = index;
                                     }
+
+                                    let is_capturing = capturing == Some(index);
+                                    let text = if is_capturing {
+                                        if french {
+                                            "Appuyez…".to_owned()
+                                        } else {
+                                            "Press…".to_owned()
+                                        }
+                                    } else {
+                                        labels.get(index).cloned().unwrap_or_default()
+                                    };
+                                    let response = keycap(ui, &palette, &text, is_capturing);
+                                    if response.clicked() {
+                                        selected_action = index;
+                                        clicked = Some(index);
+                                    }
+                                });
+                                if position % 4 == 3 {
+                                    ui.end_row();
                                 }
-                            });
-                    });
-                } else {
-                    ui.label(if french {
-                        "Impossible de charger NES-Controller.png depuis la racine du projet."
-                    } else {
-                        "Could not load NES-Controller.png from the project root."
-                    });
-                }
-            } else {
+                            }
+                        });
+                });
+ else {
                 for (group_index, (fr_title, en_title, indexes)) in GROUPS.iter().enumerate() {
                     if group_index > 0 {
                         ui.add_space(6.0);
