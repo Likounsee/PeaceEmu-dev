@@ -992,7 +992,8 @@ impl DesktopApp {
             }
             Err(error) => {
                 self.validated_paths.remove(&canonical_path);
-                let _ = validation_history::save(self.config_path.as_deref(), &self.validated_paths);
+                let _ =
+                    validation_history::save(self.config_path.as_deref(), &self.validated_paths);
                 self.message = if self.language == "fr" {
                     format!("Échec du lancement : {error}")
                 } else {
@@ -1942,7 +1943,9 @@ impl DesktopApp {
             elapsed = elapsed.saturating_mul(4);
         }
 
-        if matches!(self.active_page, DesktopPage::Game | DesktopPage::Sessions) && !self.game_window_open {
+        if matches!(self.active_page, DesktopPage::Game | DesktopPage::Sessions)
+            && !self.game_window_open
+        {
             let (events, modifiers) =
                 context.input(|input| (input.events.clone(), input.modifiers));
             let mut input_events = Vec::new();
@@ -2003,7 +2006,9 @@ impl DesktopApp {
                     self.session_action(id, SessionAction::Reset);
                 }
             }
-            if toggle_pause_requested { self.toggle_pause_active(); }
+            if toggle_pause_requested {
+                self.toggle_pause_active();
+            }
             if quick_save_requested {
                 if let Some(id) = self.controller.active_session() {
                     self.quick_save_state(id);
