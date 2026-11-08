@@ -742,10 +742,10 @@ impl DesktopApp {
                             self.message = if french {
                                 format!(
                                     "Touches échangées avec « {} ».",
-                                    key_bindings::ACTIONS[other]0.0
+                                    key_bindings::ACTIONS[other].0
                                 )
                             } else {
-                                format!("Keys swapped with {}.", key_bindings::ACTIONS[other]0.1)
+                                format!("Keys swapped with {}.", key_bindings::ACTIONS[other].1)
                             };
                         }
                     }
