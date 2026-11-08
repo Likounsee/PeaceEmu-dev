@@ -252,6 +252,31 @@ impl DesktopApp {
                             ui.add(egui::Image::new(&*texture).fit_to_exact_size(display_size));
                         image_rect = response.rect;
 
+                        // The artwork itself is interactive: invisible hit areas sit
+                        // over the eight physical controls, so users can select a
+                        // button directly instead of having to find its list entry.
+                        for index in [0usize, 1, 2, 3, 4, 5, 8, 9] {
+                            let anchor = nes_button_anchor(index, image_rect);
+                            let hit_size = if index == 4 || index == 5 {
+                                egui::vec2(image_rect.width() * 0.075, image_rect.height() * 0.15)
+                            } else if index == 8 || index == 9 {
+                                egui::vec2(image_rect.width() * 0.065, image_rect.height() * 0.13)
+                            } else {
+                                egui::vec2(image_rect.width() * 0.075, image_rect.height() * 0.15)
+                            };
+                            let hit = ui
+                                .interact(
+                                    egui::Rect::from_center_size(anchor, hit_size),
+                                    egui::Id::new(("nes-controller-hit-target", index)),
+                                    egui::Sense::click(),
+                                )
+                                .on_hover_cursor(egui::CursorIcon::PointingHand);
+                            if hit.clicked() {
+                                selected_action = index;
+                                clicked = Some(index);
+                            }
+                        }
+
                         // A clear focus ring marks the physical control currently
                         // being remapped without altering the reference artwork.
                         let anchor = nes_button_anchor(selected_action, image_rect);
@@ -414,9 +439,9 @@ impl DesktopApp {
         ui.add_space(6.0);
         ui.label(
             egui::RichText::new(if french {
-                "Cliquez sur une touche, puis appuyez sur la nouvelle. Échap annule. Si la touche est déjà utilisée, les deux actions échangent leurs touches."
+                "Cliquez directement sur un bouton de la manette ou sur une touche, puis appuyez sur la nouvelle. Échap annule. Si la touche est déjà utilisée, les deux actions échangent leurs touches."
             } else {
-                "Click a key, then press the new one. Esc cancels. If the key is already used, the two actions swap keys."
+                "Click a controller button or a key, then press the new one. Esc cancels. If the key is already used, the two actions swap keys."
             })
             .size(13.0)
             .color(palette.text_dim),
