@@ -539,8 +539,6 @@ impl DesktopApp {
                                 } else {
                                     "Resume (P)"
                                 }
-                            } else if french {
-                                "Pause (P)"
                             } else {
                                 "Pause (P)"
                             })
@@ -595,7 +593,7 @@ impl DesktopApp {
                             }
                         }
                         if ui
-                            .button(if french { "Turbo x4" } else { "Turbo x4" })
+                            .button("Turbo x4")
                             .clicked()
                         {
                             if let Some(process) = self.nes_processes.get_mut(path) {
