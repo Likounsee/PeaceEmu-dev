@@ -881,9 +881,22 @@ impl DesktopApp {
                 };
                 return;
             };
-            match Command::new(executable).arg(&canonical_path).spawn() {
-                Ok(child) => {
-                    self.nes_processes.insert(canonical_path.clone(), child);
+            match Command::new(executable)
+                .arg(&canonical_path)
+                .stdin(Stdio::piped())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+            {
+                Ok(mut child) => {
+                    let Some(commands) = child.stdin.take() else {
+                        let _ = child.kill();
+                        self.message = "Could not open the NES module command channel.".to_owned();
+                        return;
+                    };
+                    self.nes_processes.insert(canonical_path.clone(), ExternalNesProcess {
+                        child, commands, paused: false,
+                    });
                     self.controller
                         .library_mut()
                         .record_validation(&canonical_path, ContentValidation::Accepted);
