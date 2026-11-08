@@ -8,6 +8,7 @@
 use std::collections::{BTreeSet, HashMap};
 use std::error::Error;
 use std::path::{Path, PathBuf};
+use std::process::{Child, Command};
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::time::{Duration, Instant};
 
@@ -16,6 +17,7 @@ use emulation_core::content::{ContentFormatProbe, ContentLimits};
 use emulation_core::core_io::{FrameCadence, InputControl, InputEvent};
 use game_view::video_frame_to_image;
 use host_app::controller::{ApplicationController, SessionCommand};
+use host_app::library::ContentValidation;
 use preferences::{config_file_path, load_preferences, write_preferences_with_language};
 
 mod appearance_page;
@@ -31,7 +33,6 @@ mod key_bindings;
 mod language_pack;
 mod library_page;
 pub mod manifest_ed25519;
-mod nes_module;
 mod nes_module_manager;
 mod nes_probe;
 mod preferences;
@@ -196,6 +197,7 @@ struct DesktopApp {
     probe: NesCartridgeProbe,
     nes_install_receiver: Option<Receiver<Result<PathBuf, String>>>,
     nes_installing: bool,
+    nes_processes: HashMap<PathBuf, Child>,
     nes_uninstall_receiver: Option<Receiver<Result<usize, String>>>,
     nes_uninstalling: bool,
     nes_uninstall_confirm_open: bool,
@@ -343,7 +345,6 @@ impl DesktopPage {
 impl DesktopApp {
     fn new() -> Result<Self, Box<dyn Error>> {
         let mut registry = CoreRegistry::new();
-        nes_module::register_nes(&mut registry)?;
         let host = HostRuntime::new(HostRuntimeConfig::default())?;
         let mut controller = ApplicationController::new(host);
         let config_path = config_file_path();
@@ -445,6 +446,7 @@ impl DesktopApp {
             probe: NesCartridgeProbe,
             nes_install_receiver: None,
             nes_installing: false,
+            nes_processes: HashMap::new(),
             nes_uninstall_receiver: None,
             nes_uninstalling: false,
             nes_uninstall_confirm_open: false,
@@ -819,9 +821,76 @@ impl DesktopApp {
             return;
         }
 
-        // NES is registered as an in-process core. Launch it through the same
-        // host controller as every other system so it appears in Sessions and
-        // uses PeaceEmu's shared input, video, audio and persistence lifecycle.
+        let canonical_path = std::fs::canonicalize(Path::new(&path))
+            .unwrap_or_else(|_| PathBuf::from(&path));
+
+        // NES is an independently installed executable module, never linked into PeaceEmu.
+        if canonical_path.extension().and_then(|value| value.to_str())
+            .is_some_and(|value| value.eq_ignore_ascii_case("nes"))
+        {
+            if let Some(child) = self.nes_processes.get_mut(&canonical_path) {
+                match child.try_wait() {
+                    Ok(None) => {
+                        self.message = if self.language == "fr" {
+                            "Ce jeu est déjà ouvert dans son module NES.".to_owned()
+                        } else {
+                            "This game is already open in its NES module.".to_owned()
+                        };
+                        return;
+                    }
+                    _ => { self.nes_processes.remove(&canonical_path); }
+                }
+            }
+            let Some(executable) = nes_module_manager::installed_executable_path() else {
+                self.message = if self.language == "fr" {
+                    "Le module NES n’est pas installé. Installez-le depuis la page Systèmes.".to_owned()
+                } else {
+                    "The NES module is not installed. Install it from the Systems page.".to_owned()
+                };
+                return;
+            };
+            match Command::new(executable).arg(&canonical_path).spawn() {
+                Ok(child) => {
+                    self.nes_processes.insert(canonical_path.clone(), child);
+                    self.controller.library_mut().record_validation(&canonical_path, ContentValidation::Accepted);
+                    self.message = if self.language == "fr" {
+                        "Validation acceptée au dernier lancement · module NES démarré.".to_owned()
+                    } else {
+                        "Validation accepted on last launch · NES module started.".to_owned()
+                    };
+                }
+                Err(error) => {
+                    self.controller.library_mut().record_validation(&canonical_path, ContentValidation::Rejected(error.to_string()));
+                    self.message = if self.language == "fr" {
+                        format!("Impossible de démarrer le module NES : {error}")
+                    } else {
+                        format!("Could not start the NES module: {error}")
+                    };
+                }
+            }
+            return;
+        }
+
+        // Reuse the existing session when the same game is launched again.
+        if let Some((existing_id, _)) = self.session_content_paths.iter()
+            .find(|(_, existing_path)| *existing_path == canonical_path)
+        {
+            let existing_id = *existing_id;
+            if self.controller.session_summary(existing_id).is_ok() {
+                if let Err(error) = self.controller.select_session(existing_id) {
+                    self.message = format!("Could not select existing session: {error}");
+                    return;
+                }
+                self.game_window_open = true;
+                self.active_page = DesktopPage::Game;
+                self.message = if self.language == "fr" {
+                    "Ce jeu est déjà ouvert : session existante réactivée.".to_owned()
+                } else {
+                    "This game is already open: switched to its existing session.".to_owned()
+                };
+                return;
+            }
+        }
 
         // Release held controls in every session before creating/switching sessions.
         // Input may have been sent to a non-active session earlier; failing to release
@@ -1046,25 +1115,6 @@ impl DesktopApp {
         Ok(path)
     }
 
-    fn save_game_data_action(&mut self, id: SessionId) {
-        match self.save_game_data_for_session(id) {
-            Ok(_) => {
-                self.message = if self.language == "fr" {
-                    format!("Sauvegarde en jeu de la session {} enregistrée.", id.get())
-                } else {
-                    format!("Session {} in-game save written.", id.get())
-                };
-            }
-            Err(error) => {
-                self.message = if self.language == "fr" {
-                    format!("Échec de la sauvegarde du jeu : {error}")
-                } else {
-                    format!("Game save failed: {error}")
-                }
-            }
-        }
-    }
-
     fn save_dirty_game_data_for_session(&mut self, id: SessionId) -> Result<(), String> {
         let dirty = self.controller.persistent_save_dirty(id)?;
         if dirty {
@@ -1172,6 +1222,15 @@ impl DesktopApp {
                     format!("Save state failed: {error}")
                 }
             }
+        }
+    }
+
+    fn toggle_pause_active(&mut self) {
+        let Some(id) = self.controller.active_session() else { return; };
+        match self.controller.session_summary(id).map(|summary| summary.state) {
+            Ok(SessionState::Running) => self.session_action(id, SessionAction::Pause),
+            Ok(SessionState::Paused) => self.session_action(id, SessionAction::Resume),
+            _ => {}
         }
     }
 
@@ -1463,6 +1522,7 @@ impl eframe::App for DesktopApp {
     }
 
     fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
+        self.nes_processes.retain(|_, child| matches!(child.try_wait(), Ok(None)));
         let update_result = match poll_background_result(&mut self.update_check_receiver) {
             Ok(result) => result,
             Err(()) => {
@@ -1697,6 +1757,7 @@ impl DesktopApp {
         let mut fullscreen_toggle_requested = false;
         let mut quick_save_requested = false;
         let mut quick_load_requested = false;
+        let mut toggle_pause_requested = false;
         let mut turbo_change = None;
         let mut input_events = Vec::new();
         let mut modifier_snapshot = egui::Modifiers::default();
@@ -1727,6 +1788,7 @@ impl DesktopApp {
                         }
                         match key {
                             egui::Key::F1 if pressed => reset_requested = true,
+                            egui::Key::P if pressed => toggle_pause_requested = true,
                             egui::Key::F5 if pressed => quick_save_requested = true,
                             egui::Key::F8 if pressed => quick_load_requested = true,
                             egui::Key::F11 if pressed => fullscreen_toggle_requested = true,
@@ -1794,6 +1856,7 @@ impl DesktopApp {
                 self.session_action(id, SessionAction::Reset);
             }
         }
+        if toggle_pause_requested { self.toggle_pause_active(); }
         if quick_save_requested {
             if let Some(id) = self.controller.active_session() {
                 self.quick_save_state(id);
@@ -1832,6 +1895,7 @@ impl DesktopApp {
             let mut reset_requested = false;
             let mut quick_save_requested = false;
             let mut quick_load_requested = false;
+            let mut toggle_pause_requested = false;
             let mut turbo_change = None;
             for event in events {
                 match event {
@@ -1846,6 +1910,7 @@ impl DesktopApp {
                         }
                         match key {
                             egui::Key::F1 if pressed => reset_requested = true,
+                            egui::Key::P if pressed => toggle_pause_requested = true,
                             egui::Key::F5 if pressed => quick_save_requested = true,
                             egui::Key::F8 if pressed => quick_load_requested = true,
                             egui::Key::Tab => turbo_change = Some(pressed),
@@ -1883,6 +1948,7 @@ impl DesktopApp {
                     self.session_action(id, SessionAction::Reset);
                 }
             }
+            if toggle_pause_requested { self.toggle_pause_active(); }
             if quick_save_requested {
                 if let Some(id) = self.controller.active_session() {
                     self.quick_save_state(id);
