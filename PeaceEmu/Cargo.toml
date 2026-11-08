@@ -4,6 +4,7 @@ members = [
     "crates/core",
     "crates/app",
     "crates/windows-durability",
+    "crates/windows-app-identity",
 ]
 exclude = ["crates/desktop"]
 
