@@ -899,14 +899,14 @@ mod tests {
             .expect("saved preferences should exist");
         assert!((saved.turbo_speed - 2.7).abs() < f32::EPSILON);
 
-        fs::write(&path, "version=3\\nturbo_speed=99.0\\n")
+        fs::write(&path, "version=3\nturbo_speed=99.0\n")
             .expect("out-of-range speed fixture should be written");
         let saved = load_preferences(&path)
             .expect("out-of-range turbo speed should be clamped")
             .expect("preferences should exist");
         assert!((saved.turbo_speed - 4.0).abs() < f32::EPSILON);
 
-        fs::write(&path, "version=3\\nturbo_speed=NaN\\n")
+        fs::write(&path, "version=3\nturbo_speed=NaN\n")
             .expect("non-finite speed fixture should be written");
         let saved = load_preferences(&path)
             .expect("invalid turbo speed should fall back safely")
