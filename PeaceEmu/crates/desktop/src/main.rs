@@ -378,16 +378,17 @@ impl DesktopApp {
                         match controller.import_content(&content_path, MAX_CONTENT_BYTES as u64) {
                             Ok(entry) => {
                                 let restored_path = entry.path().to_path_buf();
+                                // Restore a usable library selection from the first path that
+                                // successfully imports. Do not select stale paths that failed.
+                                if selected_content.is_none() {
+                                    selected_content = Some(restored_path.clone());
+                                }
+                                // End the mutable import borrow before updating validation metadata.
                                 if validated_paths.contains(&restored_path) {
                                     controller.library_mut().record_validation(
                                         &restored_path,
                                         ContentValidation::Accepted,
                                     );
-                                }
-                                // Restore a usable library selection from the first path that
-                                // successfully imports. Do not select stale paths that failed.
-                                if selected_content.is_none() {
-                                    selected_content = Some(entry.path().to_path_buf());
                                 }
                                 restored += 1;
                             }
