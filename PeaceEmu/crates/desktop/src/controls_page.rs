@@ -447,7 +447,7 @@ impl DesktopApp {
                             }
                         });
                 });
- else {
+            } else {
                 for (group_index, (fr_title, en_title, indexes)) in GROUPS.iter().enumerate() {
                     if group_index > 0 {
                         ui.add_space(6.0);
