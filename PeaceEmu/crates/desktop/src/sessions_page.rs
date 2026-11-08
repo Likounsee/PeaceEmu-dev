@@ -78,7 +78,7 @@ impl DesktopApp {
         // External modules own their own runtime and window. Reap exited processes
         // here so the session list always reflects the actual process state.
         self.nes_processes
-            .retain(|_, child| matches!(child.try_wait(), Ok(None)));
+            .retain(|_, process| matches!(process.child.try_wait(), Ok(None)));
         let external_sessions: Vec<_> = self
             .nes_processes
             .iter()
