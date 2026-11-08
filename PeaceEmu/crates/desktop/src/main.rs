@@ -1265,8 +1265,10 @@ impl DesktopApp {
             let command = format!("KEYS {keys}");
             let mut first_error = None;
             for process in self.nes_processes.values_mut() {
-                if let Err(error) = process.send(&command) {
-                    first_error.get_or_insert(error);
+                if process.is_running() {
+                    if let Err(error) = process.send(&command) {
+                        first_error.get_or_insert(error);
+                    }
                 }
             }
             if let Some(error) = first_error {
