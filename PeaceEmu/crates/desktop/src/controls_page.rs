@@ -87,10 +87,7 @@ fn draw_nes_controller(
     let r = |x: f32, y: f32, w: f32, h: f32| {
         egui::Rect::from_center_size(p(x, y), egui::vec2(rect.width() * w, rect.height() * h))
     };
-    let silver = egui::Color32::from_rgb(211, 213, 218);
     let light = egui::Color32::from_rgb(246, 247, 250);
-    let dark = egui::Color32::from_rgb(29, 30, 33);
-    let red = egui::Color32::from_rgb(205, 43, 53);
     let logo = egui::Color32::from_rgb(190, 62, 72);
 
     // Moulded plastic shell: soft outer shadow, dark lower edge and stepped
@@ -114,22 +111,22 @@ fn draw_nes_controller(
     painter.rect_stroke(
         shell,
         egui::Rounding::same(17.0),
-        egui::Stroke::new(1.5, egui::Color32::from_rgb(250, 250, 251)),
+        egui::Stroke::new(1.5_f32, egui::Color32::from_rgb(250, 250, 251)),
     );
     let inner_shell = shell.shrink2(egui::vec2(3.0, 3.0));
     painter.rect_stroke(
         inner_shell,
         egui::Rounding::same(14.0),
-        egui::Stroke::new(1.0, egui::Color32::from_rgb(187, 189, 194)),
+        egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(187, 189, 194)),
     );
     // Fine mould lines on the top and bottom edges of the casing.
     painter.line_segment(
         [p(0.035, 0.245), p(0.965, 0.245)],
-        egui::Stroke::new(1.0, egui::Color32::from_rgb(194, 196, 201)),
+        egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(194, 196, 201)),
     );
     painter.line_segment(
         [p(0.035, 0.945), p(0.965, 0.945)],
-        egui::Stroke::new(1.0, egui::Color32::from_rgb(174, 176, 182)),
+        egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(174, 176, 182)),
     );
     let face = r(0.5, 0.655, 0.936, 0.575);
     painter.rect_filled(
@@ -145,14 +142,14 @@ fn draw_nes_controller(
     painter.rect_stroke(
         face,
         egui::Rounding::same(7.0),
-        egui::Stroke::new(1.2, egui::Color32::from_rgb(91, 92, 96)),
+        egui::Stroke::new(1.2_f32, egui::Color32::from_rgb(91, 92, 96)),
     );
     painter.line_segment(
         [
             face.left_top() + egui::vec2(8.0, 4.0),
             face.right_top() + egui::vec2(-8.0, 4.0),
         ],
-        egui::Stroke::new(1.0, egui::Color32::from_rgb(57, 58, 62)),
+        egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(57, 58, 62)),
     );
 
     // Grey horizontal moulded bars visible above and below the centre controls.
@@ -192,7 +189,7 @@ fn draw_nes_controller(
     painter.rect_stroke(
         dpad_well,
         egui::Rounding::same(7.0),
-        egui::Stroke::new(1.0, egui::Color32::from_rgb(74, 76, 81)),
+        egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(74, 76, 81)),
     );
     let cross = |scale: f32| {
         let u = unit * scale;
@@ -378,7 +375,7 @@ fn draw_nes_controller(
         painter.circle_stroke(
             center,
             radius * 0.98,
-            egui::Stroke::new(1.2, egui::Color32::from_rgb(116, 12, 23)),
+            egui::Stroke::new(1.2_f32, egui::Color32::from_rgb(116, 12, 23)),
         );
         action_targets.push(egui::Rect::from_center_size(
             center,
