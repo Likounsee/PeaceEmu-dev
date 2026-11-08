@@ -75,7 +75,8 @@ fn draw_nes_controller(
     selected_action: usize,
 ) -> Option<usize> {
     let width = ui.available_width().min(900.0);
-    let size = egui::vec2(width, width * 0.430);
+    // Match the 2400×1340 reference canvas instead of flattening the controller.
+    let size = egui::vec2(width, width * (1340.0 / 2400.0));
     let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
     let painter = ui.painter_at(rect);
     let p = |x: f32, y: f32| {
