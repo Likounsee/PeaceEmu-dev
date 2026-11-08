@@ -222,75 +222,129 @@ impl DesktopApp {
             ui.set_width(ui.available_width());
             if selected == "nes" {
                 if let Some(texture) = controller_texture.as_ref() {
+                    // Keep the supplied controller artwork intact: it is the
+                    // visual reference, not a shape to be approximated in egui.
                     let image_size = texture.size_vec2();
-                    let max_image = egui::vec2((ui.available_width() * 0.58).min(460.0), 230.0);
-                    let scale = (max_image.x / image_size.x)
-                        .min(max_image.y / image_size.y)
-                        .max(0.01);
-                    let display_size = image_size * scale;
                     let mut image_rect = egui::Rect::NOTHING;
-                    let mut row_targets = Vec::new();
-                    ui.horizontal_top(|ui| {
-                        ui.add_space(4.0);
-                        let image_response =
-                            ui.add(egui::Image::new(&*texture).fit_to_exact_size(display_size));
-                        image_rect = image_response.rect;
-                        ui.add_space(12.0);
-                        ui.vertical(|ui| {
-                            ui.label(
-                                egui::RichText::new(if french {
-                                    "Manette NES — Joueur 1"
-                                } else {
-                                    "NES controller — Player 1"
-                                })
-                                .strong()
-                                .color(palette.text),
-                            );
-                            ui.add_space(6.0);
-                            for index in [0usize, 1, 2, 3, 4, 5, 8, 9] {
-                                let (fr, en) = key_bindings::ACTIONS[index];
-                                ui.horizontal(|ui| {
-                                    let selected_row = selected_action == index;
-                                    if ui
-                                        .selectable_label(
+                    let mut key_targets = Vec::new();
+
+                    ui.vertical_centered(|ui| {
+                        ui.label(
+                            egui::RichText::new(if french {
+                                "Manette NES — Joueur 1"
+                            } else {
+                                "NES controller — Player 1"
+                            })
+                            .strong()
+                            .size(16.0)
+                            .color(palette.text),
+                        );
+                        ui.add_space(10.0);
+
+                        let max_width = ui.available_width().min(820.0);
+                        let max_height = (max_width / (image_size.x / image_size.y)).min(460.0);
+                        let scale = (max_width / image_size.x)
+                            .min(max_height / image_size.y)
+                            .max(0.01);
+                        let display_size = image_size * scale;
+                        let response = ui.add(
+                            egui::Image::new(&*texture).fit_to_exact_size(display_size),
+                        );
+                        image_rect = response.rect;
+
+                        // A clear focus ring marks the physical control currently
+                        // being remapped without altering the reference artwork.
+                        let anchor = nes_button_anchor(selected_action, image_rect);
+                        let radius = if selected_action == 4 || selected_action == 5 {
+                            image_rect.width() * 0.036
+                        } else if selected_action == 8 || selected_action == 9 {
+                            image_rect.width() * 0.025
+                        } else {
+                            image_rect.width() * 0.031
+                        };
+                        ui.painter().circle_stroke(
+                            anchor,
+                            radius,
+                            egui::Stroke::new(3.0, palette.accent),
+                        );
+                        ui.painter().circle_filled(anchor, 4.0, palette.accent);
+
+                        ui.add_space(14.0);
+                        ui.label(
+                            egui::RichText::new(if french {
+                                "Affectation des touches"
+                            } else {
+                                "Keyboard mapping"
+                            })
+                            .strong()
+                            .color(palette.text_dim),
+                        );
+                        ui.add_space(8.0);
+
+                        egui::Grid::new("nes-controller-key-mapping")
+                            .num_columns(4)
+                            .spacing(egui::vec2(14.0, 10.0))
+                            .show(ui, |ui| {
+                                for (position, index) in
+                                    [0usize, 1, 2, 3, 4, 5, 8, 9].into_iter().enumerate()
+                                {
+                                    let (fr, en) = key_bindings::ACTIONS[index];
+                                    ui.vertical_centered(|ui| {
+                                        let selected_row = selected_action == index;
+                                        let label = ui.selectable_label(
                                             selected_row,
                                             if french { fr } else { en },
-                                        )
-                                        .clicked()
-                                    {
-                                        selected_action = index;
-                                    }
-                                    let is_capturing = capturing == Some(index);
-                                    let text = if is_capturing {
-                                        if french {
-                                            "Appuyez…".to_owned()
-                                        } else {
-                                            "Press…".to_owned()
+                                        );
+                                        if label.clicked() {
+                                            selected_action = index;
                                         }
-                                    } else {
-                                        labels.get(index).cloned().unwrap_or_default()
-                                    };
-                                    let response = keycap(ui, &palette, &text, is_capturing);
-                                    if response.clicked() {
-                                        selected_action = index;
-                                        clicked = Some(index);
+
+                                        let is_capturing = capturing == Some(index);
+                                        let text = if is_capturing {
+                                            if french {
+                                                "Appuyez…".to_owned()
+                                            } else {
+                                                "Press…".to_owned()
+                                            }
+                                        } else {
+                                            labels.get(index).cloned().unwrap_or_default()
+                                        };
+                                        let response = keycap(
+                                            ui,
+                                            &palette,
+                                            &text,
+                                            is_capturing,
+                                        );
+                                        if response.clicked() {
+                                            selected_action = index;
+                                            clicked = Some(index);
+                                        }
+                                        key_targets.push((index, response.rect.center_top()));
+                                    });
+                                    if position % 4 == 3 {
+                                        ui.end_row();
                                     }
-                                    row_targets.push((index, response.rect.left_center()));
-                                });
-                            }
-                        });
+                                }
+                            });
                     });
-                    if let Some((_, target)) = row_targets
+
+                    // Connect the selected physical button to its key assignment.
+                    if let Some((_, target)) = key_targets
                         .iter()
                         .find(|(index, _)| *index == selected_action)
                     {
                         let start = nes_button_anchor(selected_action, image_rect);
-                        ui.painter().arrow(
-                            start,
-                            *target - start,
-                            egui::Stroke::new(2.5_f32, palette.accent),
+                        let end = *target;
+                        let bend = egui::pos2(start.x, (start.y + end.y) * 0.5);
+                        ui.painter().line_segment(
+                            [start, bend],
+                            egui::Stroke::new(1.5, palette.accent),
                         );
-                        ui.painter().circle_filled(start, 5.0, palette.accent);
+                        ui.painter().arrow(
+                            bend,
+                            end - bend,
+                            egui::Stroke::new(1.5, palette.accent),
+                        );
                     }
                 } else {
                     ui.label(if french {
