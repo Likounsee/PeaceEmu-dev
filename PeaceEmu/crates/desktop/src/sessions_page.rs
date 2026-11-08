@@ -547,11 +547,7 @@ impl DesktopApp {
                             .clicked()
                         {
                             if let Some(process) = self.nes_processes.get_mut(path) {
-                                let command = if process.paused {
-                                    "RESUME"
-                                } else {
-                                    "PAUSE"
-                                };
+                                let command = if process.paused { "RESUME" } else { "PAUSE" };
                                 if process.send(command).is_ok() {
                                     process.paused = !process.paused;
                                 }
