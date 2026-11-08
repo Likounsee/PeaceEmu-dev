@@ -19,7 +19,7 @@ use emulation_core::core_io::{FrameCadence, InputControl, InputEvent};
 use game_view::video_frame_to_image;
 use host_app::controller::{ApplicationController, SessionCommand};
 use host_app::library::ContentValidation;
-use preferences::{config_file_path, load_preferences, write_preferences_with_language};
+use preferences::{config_file_path, load_preferences, write_preferences_with_language_and_turbo};
 
 mod appearance_page;
 mod audio_output;
@@ -201,36 +201,66 @@ fn poll_background_result<T>(receiver: &mut Option<Receiver<T>>) -> Result<Optio
 }
 
 struct ExternalNesProcess {
-    child: Child,
-    commands: ChildStdin,
+    child: Option<Child>,
+    commands: Option<ChildStdin>,
     events: Receiver<String>,
     paused: bool,
 }
 
 impl ExternalNesProcess {
     fn send(&mut self, command: &str) -> Result<(), String> {
-        writeln!(self.commands, "{command}")
-            .and_then(|()| self.commands.flush())
+        let Some(commands) = self.commands.as_mut() else {
+            return Err("The NES session is stopped. Reopen it before sending commands.".to_owned());
+        };
+        writeln!(commands, "{command}")
+            .and_then(|()| commands.flush())
             .map_err(|error| format!("Could not send command to NES module: {error}"))
+    }
+
+    /// Reaps a child that closed its own window without deleting its session entry.
+    fn poll_exit(&mut self) {
+        let exited = match self.child.as_mut() {
+            Some(child) => matches!(child.try_wait(), Ok(Some(_))),
+            None => false,
+        };
+        if exited {
+            self.child.take();
+            self.commands.take();
+            self.paused = false;
+        }
+    }
+
+    fn is_running(&mut self) -> bool {
+        self.poll_exit();
+        self.child.is_some()
+    }
+
+    fn process_id(&self) -> Option<u32> {
+        self.child.as_ref().map(Child::id)
     }
 
     fn shutdown(&mut self, timeout: Duration) -> Result<(), String> {
         // Ask the module to close its own window and flush persistent data first.
+        if self.child.is_none() {
+            return Ok(());
+        }
         let _ = self.send("QUIT");
         let started = Instant::now();
         loop {
-            match self.child.try_wait() {
-                Ok(Some(_)) => return Ok(()),
-                Ok(None) => {}
-                Err(error) => return Err(format!("Could not inspect NES module process: {error}")),
+            self.poll_exit();
+            if self.child.is_none() {
+                return Ok(());
             }
             if started.elapsed() >= timeout {
-                self.child
+                let child = self.child.as_mut().expect("running child remains present");
+                child
                     .kill()
                     .map_err(|error| format!("Could not stop unresponsive NES module: {error}"))?;
-                self.child
+                child
                     .wait()
                     .map_err(|error| format!("Could not reap NES module process: {error}"))?;
+                self.child.take();
+                self.commands.take();
                 return Ok(());
             }
             std::thread::sleep(Duration::from_millis(10));
@@ -281,6 +311,7 @@ struct DesktopApp {
     game_window_open: bool,
     game_fullscreen: bool,
     turbo_held: bool,
+    nes_turbo_speed: f32,
     video_size: Option<[u32; 2]>,
     media_status: String,
     audio_output: AudioOutput,
@@ -416,6 +447,7 @@ impl DesktopApp {
         let mut dark_mode = true;
         let mut language = preferences::system_language();
         let mut accent_color = theme::DEFAULT_ACCENT;
+        let mut nes_turbo_speed = 4.0_f32;
         let mut message = String::from("Ready. Select a content path to import or launch.");
         let mut selected_content = None;
         if let Some(path) = config_path.as_deref() {
@@ -425,6 +457,7 @@ impl DesktopApp {
                     // Keep reading the legacy persisted scale for compatibility; no scale control is exposed.
                     let _legacy_ui_scale = saved.ui_scale;
                     language = saved.language;
+                    nes_turbo_speed = saved.turbo_speed.clamp(0.5, 4.0);
                     accent_color = egui::Color32::from_rgb(
                         saved.accent_rgb[0],
                         saved.accent_rgb[1],
@@ -546,6 +579,7 @@ impl DesktopApp {
             game_window_open: false,
             game_fullscreen: false,
             turbo_held: false,
+            nes_turbo_speed,
             video_size: None,
             media_status: "No active session.".to_owned(),
             audio_output: AudioOutput::new(),
@@ -907,7 +941,7 @@ impl DesktopApp {
             let already_running = self
                 .nes_processes
                 .get_mut(&canonical_path)
-                .is_some_and(|process| matches!(process.child.try_wait(), Ok(None)));
+                .is_some_and(ExternalNesProcess::is_running);
             if already_running {
                 self.message = if self.language == "fr" {
                     "Ce jeu est déjà ouvert dans son module NES.".to_owned()
@@ -916,7 +950,6 @@ impl DesktopApp {
                 };
                 return;
             }
-            self.nes_processes.remove(&canonical_path);
             let Some(executable) = nes_module_manager::installed_executable_path() else {
                 self.message = if self.language == "fr" {
                     "Le module NES n’est pas installé. Installez-le depuis la page Systèmes."
@@ -980,12 +1013,15 @@ impl DesktopApp {
                     self.nes_processes.insert(
                         canonical_path.clone(),
                         ExternalNesProcess {
-                            child,
-                            commands,
+                            child: Some(child),
+                            commands: Some(commands),
                             events,
                             paused: false,
                         },
                     );
+                    if let Some(process) = self.nes_processes.get_mut(&canonical_path) {
+                        let _ = process.send(&format!("TURBO_SPEED {:.1}", self.nes_turbo_speed));
+                    }
                     self.controller
                         .library_mut()
                         .record_validation(&canonical_path, ContentValidation::Accepted);
@@ -1243,6 +1279,36 @@ impl DesktopApp {
         }
     }
 
+    fn set_nes_turbo_speed(&mut self, speed: f32) {
+        if !speed.is_finite() {
+            return;
+        }
+        self.nes_turbo_speed = (speed.clamp(0.5, 4.0) * 10.0).round() / 10.0;
+        let command = format!("TURBO_SPEED {:.1}", self.nes_turbo_speed);
+        let mut first_error = None;
+        for process in self.nes_processes.values_mut() {
+            if process.is_running() {
+                if let Err(error) = process.send(&command) {
+                    first_error.get_or_insert(error);
+                }
+            }
+        }
+        let saved = self.save_preferences();
+        if let Some(error) = first_error {
+            self.message = if self.language == "fr" {
+                format!("Vitesse turbo enregistrée, mais un module NES n’a pas reçu le réglage : {error}")
+            } else {
+                format!("Turbo speed saved, but a NES module did not receive the setting: {error}")
+            };
+        } else if saved {
+            self.message = if self.language == "fr" {
+                format!("Vitesse turbo réglée sur {:.1}×.", self.nes_turbo_speed)
+            } else {
+                format!("Turbo speed set to {:.1}×.", self.nes_turbo_speed)
+            };
+        }
+    }
+
     fn save_preferences(&mut self) -> bool {
         let Some(path) = self.config_path.as_deref() else {
             self.message = preferences_unavailable_message(&self.language).to_owned();
@@ -1254,7 +1320,7 @@ impl DesktopApp {
             .entries()
             .map(|entry| entry.path().to_path_buf())
             .collect();
-        if let Err(error) = write_preferences_with_language(
+        if let Err(error) = write_preferences_with_language_and_turbo(
             path,
             self.dark_mode,
             1.0,
@@ -1264,6 +1330,7 @@ impl DesktopApp {
                 self.accent_color.b(),
             ],
             &self.language,
+            self.nes_turbo_speed,
             &paths,
         ) {
             self.message = if self.language == "fr" {
@@ -1755,8 +1822,9 @@ impl eframe::App for DesktopApp {
                 format!("NES module · {game}: {detail}")
             };
         }
-        self.nes_processes
-            .retain(|_, process| matches!(process.child.try_wait(), Ok(None)));
+        for process in self.nes_processes.values_mut() {
+            process.poll_exit();
+        }
         let update_result = match poll_background_result(&mut self.update_check_receiver) {
             Ok(result) => result,
             Err(()) => {
