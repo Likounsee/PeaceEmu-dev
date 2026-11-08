@@ -231,15 +231,7 @@ pub(crate) fn write_preferences_with_language(
     language: &str,
     paths: &[PathBuf],
 ) -> std::io::Result<()> {
-    write_preferences_with_language_and_turbo(
-        path,
-        dark_mode,
-        ui_scale,
-        accent_rgb,
-        language,
-        4.0,
-        paths,
-    )
+    write_preferences_with_language_and_turbo(path, dark_mode, ui_scale, accent_rgb, language, 4.0, paths)
 }
 
 pub(crate) fn write_preferences_with_language_and_turbo(
@@ -897,15 +889,7 @@ mod tests {
     #[test]
     fn turbo_speed_preference_round_trips_and_clamps_invalid_values() {
         let path = temporary_config("turbo-speed-round-trip");
-        write_preferences_with_language_and_turbo(
-            &path,
-            true,
-            1.0,
-            [75, 115, 210],
-            "fr",
-            2.7,
-            &[],
-        )
+        write_preferences_with_language_and_turbo(&path, true, 1.0, [75, 115, 210], "fr", 2.7, &[])
         .expect("turbo speed should be persisted");
 
         let saved = load_preferences(&path)
@@ -930,5 +914,4 @@ mod tests {
         let _ = fs::remove_file(&path);
         let _ = fs::remove_file(path.with_extension("conf.bak"));
     }
-
 }
