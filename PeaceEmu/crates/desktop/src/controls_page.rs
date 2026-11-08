@@ -297,7 +297,9 @@ fn draw_nes_controller(
         let rounding = egui::Rounding::same(button.height() * 0.5);
         // Recessed socket, then the raised dark-grey rubber cap.
         painter.rect_filled(
-            button.expand(egui::vec2(3.0, 2.0)).translate(egui::vec2(0.0, 1.5)),
+            button
+                .expand(egui::vec2(3.0, 2.0))
+                .translate(egui::vec2(0.0, 1.5)),
             egui::Rounding::same(button.height() * 0.65),
             egui::Color32::from_rgb(125, 127, 133),
         );
@@ -311,11 +313,7 @@ fn draw_nes_controller(
             rounding,
             egui::Color32::from_rgb(12, 13, 15),
         );
-        painter.rect_filled(
-            button,
-            rounding,
-            egui::Color32::from_rgb(57, 59, 64),
-        );
+        painter.rect_filled(button, rounding, egui::Color32::from_rgb(57, 59, 64));
         painter.rect_stroke(
             button,
             rounding,
