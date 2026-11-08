@@ -16,6 +16,9 @@ path = "src/main.rs"
 image = { version = "=0.24.9", default-features = false, features = ["png"] }
 winres = "0.1"
 
+[target.'cfg(windows)'.dependencies]
+windows-app-identity = { path = "../windows-app-identity" }
+
 [dependencies]
 host-app = { version = "0.1.0", path = "../app" }
 emulation-core = { version = "0.1.0", path = "../core" }
