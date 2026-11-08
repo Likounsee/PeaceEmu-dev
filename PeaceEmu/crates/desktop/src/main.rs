@@ -862,7 +862,7 @@ impl DesktopApp {
             let already_running = self
                 .nes_processes
                 .get_mut(&canonical_path)
-                .is_some_and(|child| matches!(child.try_wait(), Ok(None)));
+                .is_some_and(|process| matches!(process.child.try_wait(), Ok(None)));
             if already_running {
                 self.message = if self.language == "fr" {
                     "Ce jeu est déjà ouvert dans son module NES.".to_owned()
@@ -1597,12 +1597,18 @@ impl eframe::App for DesktopApp {
         if let Err(error) = self.release_game_inputs() {
             eprintln!("PeaceEmu: could not release held inputs on exit: {error}");
         }
+        for process in self.nes_processes.values_mut() {
+            let _ = process.send("QUIT");
+            let _ = process.child.kill();
+            let _ = process.child.wait();
+        }
+        self.nes_processes.clear();
         self.controller.close_all_sessions();
     }
 
     fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
         self.nes_processes
-            .retain(|_, child| matches!(child.try_wait(), Ok(None)));
+            .retain(|_, process| matches!(process.child.try_wait(), Ok(None)));
         let update_result = match poll_background_result(&mut self.update_check_receiver) {
             Ok(result) => result,
             Err(()) => {
