@@ -488,7 +488,11 @@ impl DesktopApp {
             section_title(
                 ui,
                 &palette,
-                if french { "Modules externes en cours" } else { "External modules running" },
+                if french {
+                    "Modules externes en cours"
+                } else {
+                    "External modules running"
+                },
                 external_sessions.len(),
             );
             for (path, process_id) in &external_sessions {
@@ -504,7 +508,11 @@ impl DesktopApp {
                             ui.label(egui::RichText::new(&title).size(16.0).strong());
                             theme::badge(
                                 ui,
-                                if french { "En cours · module NES" } else { "Running · NES module" },
+                                if french {
+                                    "En cours · module NES"
+                                } else {
+                                    "Running · NES module"
+                                },
                                 palette.success,
                             );
                             ui.label(
@@ -524,7 +532,14 @@ impl DesktopApp {
                             .color(palette.text_dim),
                     );
                     ui.horizontal(|ui| {
-                        if ui.button(if french { "Fermer le jeu" } else { "Close game" }).clicked() {
+                        if ui
+                            .button(if french {
+                                "Fermer le jeu"
+                            } else {
+                                "Close game"
+                            })
+                            .clicked()
+                        {
                             closing_external = Some(path.clone());
                         }
                         ui.label(
@@ -765,12 +780,22 @@ impl DesktopApp {
                 let total = count + external_count.saturating_sub(external_failures.len());
                 self.message = if !external_failures.is_empty() {
                     if french {
-                        format!("{total} session(s) fermée(s) ; échec(s) sur : {}", external_failures.join("; "))
+                        format!(
+                            "{total} session(s) fermée(s) ; échec(s) sur : {}",
+                            external_failures.join("; ")
+                        )
                     } else {
-                        format!("{total} session(s) closed; failed to stop: {}", external_failures.join("; "))
+                        format!(
+                            "{total} session(s) closed; failed to stop: {}",
+                            external_failures.join("; ")
+                        )
                     }
                 } else if french {
-                    let noun = if total == 1 { "session fermée" } else { "sessions fermées" };
+                    let noun = if total == 1 {
+                        "session fermée"
+                    } else {
+                        "sessions fermées"
+                    };
                     format!("{total} {noun}.")
                 } else {
                     let noun = if total == 1 { "session" } else { "sessions" };
