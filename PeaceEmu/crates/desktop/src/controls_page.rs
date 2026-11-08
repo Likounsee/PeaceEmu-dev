@@ -248,9 +248,8 @@ impl DesktopApp {
                             .min(max_height / image_size.y)
                             .max(0.01);
                         let display_size = image_size * scale;
-                        let response = ui.add(
-                            egui::Image::new(&*texture).fit_to_exact_size(display_size),
-                        );
+                        let response =
+                            ui.add(egui::Image::new(&*texture).fit_to_exact_size(display_size));
                         image_rect = response.rect;
 
                         // A clear focus ring marks the physical control currently
@@ -310,12 +309,7 @@ impl DesktopApp {
                                         } else {
                                             labels.get(index).cloned().unwrap_or_default()
                                         };
-                                        let response = keycap(
-                                            ui,
-                                            &palette,
-                                            &text,
-                                            is_capturing,
-                                        );
+                                        let response = keycap(ui, &palette, &text, is_capturing);
                                         if response.clicked() {
                                             selected_action = index;
                                             clicked = Some(index);
@@ -337,10 +331,8 @@ impl DesktopApp {
                         let start = nes_button_anchor(selected_action, image_rect);
                         let end = *target;
                         let bend = egui::pos2(start.x, (start.y + end.y) * 0.5);
-                        ui.painter().line_segment(
-                            [start, bend],
-                            egui::Stroke::new(1.5, palette.accent),
-                        );
+                        ui.painter()
+                            .line_segment([start, bend], egui::Stroke::new(1.5, palette.accent));
                         ui.painter().arrow(
                             bend,
                             end - bend,
