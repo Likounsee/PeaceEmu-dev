@@ -400,7 +400,8 @@ pub(crate) fn unescape_config_value(value: &str) -> Option<String> {
 mod tests {
     use super::{
         load_preferences, unescape_config_value, write_preferences,
-        write_preferences_with_language, MAX_PREFERENCES_BYTES,
+        write_preferences_with_language, write_preferences_with_language_and_turbo,
+        MAX_PREFERENCES_BYTES,
     };
     use std::fs;
     use std::path::PathBuf;
@@ -893,4 +894,41 @@ mod tests {
         assert!((saved.ui_scale - 0.8).abs() < f32::EPSILON);
         let _ = fs::remove_file(path);
     }
+    #[test]
+    fn turbo_speed_preference_round_trips_and_clamps_invalid_values() {
+        let path = temporary_config("turbo-speed-round-trip");
+        write_preferences_with_language_and_turbo(
+            &path,
+            true,
+            1.0,
+            [75, 115, 210],
+            "fr",
+            2.7,
+            &[],
+        )
+        .expect("turbo speed should be persisted");
+
+        let saved = load_preferences(&path)
+            .expect("preferences should load")
+            .expect("saved preferences should exist");
+        assert!((saved.turbo_speed - 2.7).abs() < f32::EPSILON);
+
+        fs::write(&path, "version=3\\nturbo_speed=99.0\\n")
+            .expect("out-of-range speed fixture should be written");
+        let saved = load_preferences(&path)
+            .expect("out-of-range turbo speed should be clamped")
+            .expect("preferences should exist");
+        assert!((saved.turbo_speed - 4.0).abs() < f32::EPSILON);
+
+        fs::write(&path, "version=3\\nturbo_speed=NaN\\n")
+            .expect("non-finite speed fixture should be written");
+        let saved = load_preferences(&path)
+            .expect("invalid turbo speed should fall back safely")
+            .expect("preferences should exist");
+        assert!((saved.turbo_speed - 4.0).abs() < f32::EPSILON);
+
+        let _ = fs::remove_file(&path);
+        let _ = fs::remove_file(path.with_extension("conf.bak"));
+    }
+
 }
