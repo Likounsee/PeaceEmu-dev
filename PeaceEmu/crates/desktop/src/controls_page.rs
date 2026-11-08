@@ -69,15 +69,16 @@ fn keycap(
 
 /// Approximate centers of the eight physical NES controls in normalized image coordinates.
 fn nes_button_anchor(index: usize, rect: egui::Rect) -> egui::Pos2 {
+    // Coordinates are measured against the supplied 2400x1340 controller artwork.
     let (x, y) = match index {
-        0 => (0.245, 0.31), // Up
-        1 => (0.245, 0.69), // Down
-        2 => (0.155, 0.50), // Left
-        3 => (0.335, 0.50), // Right
-        4 => (0.815, 0.62), // A
-        5 => (0.735, 0.62), // B
-        8 => (0.575, 0.50), // Start
-        _ => (0.475, 0.50), // Select
+        0 => (0.193, 0.455), // Up
+        1 => (0.193, 0.735), // Down
+        2 => (0.132, 0.595), // Left
+        3 => (0.255, 0.595), // Right
+        4 => (0.830, 0.690), // A
+        5 => (0.700, 0.690), // B
+        8 => (0.525, 0.680), // Start
+        _ => (0.418, 0.680), // Select
     };
     egui::pos2(
         rect.left() + rect.width() * x,
