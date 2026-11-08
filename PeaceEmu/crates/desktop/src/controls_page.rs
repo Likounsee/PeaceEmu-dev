@@ -356,8 +356,10 @@ impl DesktopApp {
                         let start = nes_button_anchor(selected_action, image_rect);
                         let end = *target;
                         let bend = egui::pos2(start.x, (start.y + end.y) * 0.5);
-                        ui.painter()
-                            .line_segment([start, bend], egui::Stroke::new(1.5_f32, palette.accent));
+                        ui.painter().line_segment(
+                            [start, bend],
+                            egui::Stroke::new(1.5_f32, palette.accent),
+                        );
                         ui.painter().arrow(
                             bend,
                             end - bend,
