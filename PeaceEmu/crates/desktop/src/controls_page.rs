@@ -363,7 +363,7 @@ impl DesktopApp {
                         ui.painter().arrow(
                             bend,
                             end - bend,
-                            egui::Stroke::new(1.5, palette.accent),
+                            egui::Stroke::new(1.5_f32, palette.accent),
                         );
                     }
                 } else {
