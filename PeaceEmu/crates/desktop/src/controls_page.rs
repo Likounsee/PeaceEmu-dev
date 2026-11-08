@@ -381,7 +381,6 @@ impl DesktopApp {
             .as_ref()
             .and_then(|(id, index)| (id == &selected).then_some(*index));
 
-
         let action_id = egui::Id::new(("controls-selected-action", selected.as_str()));
         let mut selected_action: usize = ui.data_mut(|data| data.get_temp(action_id)).unwrap_or(0);
         if selected == "nes" && ![0, 1, 2, 3, 4, 5, 8, 9].contains(&selected_action) {
