@@ -75,10 +75,20 @@ impl DesktopApp {
     pub(super) fn show_sessions(&mut self, ui: &mut egui::Ui) {
         let palette = theme::Palette::new(self.dark_mode, self.accent_color);
         let french = self.language == "fr";
-        let session_count = self.controller.session_count();
+        // External modules own their own runtime and window. Reap exited processes
+        // here so the session list always reflects the actual process state.
+        self.nes_processes
+            .retain(|_, child| matches!(child.try_wait(), Ok(None)));
+        let external_sessions: Vec<_> = self
+            .nes_processes
+            .iter()
+            .map(|(path, child)| (path.clone(), child.id()))
+            .collect();
+        let session_count = self.controller.session_count() + external_sessions.len();
         let mut close_all = false;
         let mut closing: Option<SessionId> = None;
         let mut opening: Option<SessionId> = None;
+        let mut closing_external: Option<PathBuf> = None;
 
         theme::page_header(
             ui,
@@ -100,7 +110,7 @@ impl DesktopApp {
         );
 
         let sessions = self.controller.session_summaries();
-        if sessions.is_empty() {
+        if sessions.is_empty() && external_sessions.is_empty() {
             theme::card(ui, &palette, |ui| {
                 ui.set_width(ui.available_width());
                 ui.label(
@@ -473,6 +483,64 @@ impl DesktopApp {
             });
         }
 
+        // ----------------------------------------- External module sessions
+        if !external_sessions.is_empty() {
+            section_title(
+                ui,
+                &palette,
+                if french { "Modules externes en cours" } else { "External modules running" },
+                external_sessions.len(),
+            );
+            for (path, process_id) in &external_sessions {
+                let title = path
+                    .file_stem()
+                    .map(|name| name.to_string_lossy().into_owned())
+                    .unwrap_or_else(|| path.display().to_string());
+                theme::card(ui, &palette, |ui| {
+                    ui.set_width(ui.available_width());
+                    ui.horizontal(|ui| {
+                        paint_cover(ui, &title, egui::vec2(52.0, 52.0));
+                        ui.vertical(|ui| {
+                            ui.label(egui::RichText::new(&title).size(16.0).strong());
+                            theme::badge(
+                                ui,
+                                if french { "En cours · module NES" } else { "Running · NES module" },
+                                palette.success,
+                            );
+                            ui.label(
+                                egui::RichText::new(if french {
+                                    format!("Processus externe · PID {process_id}")
+                                } else {
+                                    format!("External process · PID {process_id}")
+                                })
+                                .size(13.0)
+                                .color(palette.text_dim),
+                            );
+                        });
+                    });
+                    ui.label(
+                        egui::RichText::new(path.display().to_string())
+                            .size(12.0)
+                            .color(palette.text_dim),
+                    );
+                    ui.horizontal(|ui| {
+                        if ui.button(if french { "Fermer le jeu" } else { "Close game" }).clicked() {
+                            closing_external = Some(path.clone());
+                        }
+                        ui.label(
+                            egui::RichText::new(if french {
+                                "Géré par son module indépendant"
+                            } else {
+                                "Managed by its standalone module"
+                            })
+                            .size(12.0)
+                            .color(palette.text_dim),
+                        );
+                    });
+                });
+            }
+        }
+
         // ------------------------------------------------- Stopped (small tiles)
         if !stopped.is_empty() {
             section_title(
@@ -545,6 +613,28 @@ impl DesktopApp {
         }
 
         // ---------------------------------------------------- Deferred actions
+        if let Some(path) = closing_external {
+            if let Some(mut child) = self.nes_processes.remove(&path) {
+                match child.kill().and_then(|()| child.wait().map(|_| ())) {
+                    Ok(()) => {
+                        self.message = if french {
+                            format!("Session NES externe fermée : {}.", path.display())
+                        } else {
+                            format!("Closed external NES session: {}.", path.display())
+                        };
+                    }
+                    Err(error) => {
+                        self.nes_processes.insert(path, child);
+                        self.message = if french {
+                            format!("Impossible de fermer le module NES : {error}")
+                        } else {
+                            format!("Could not close NES module: {error}")
+                        };
+                    }
+                }
+            }
+        }
+
         if let Some(id) = opening {
             if self.controller.active_session() == Some(id) {
                 self.active_page = DesktopPage::Game;
@@ -649,6 +739,17 @@ impl DesktopApp {
                 };
             } else {
                 let count = self.controller.close_all_sessions();
+                let external_count = self.nes_processes.len();
+                let mut external_failures = Vec::new();
+                self.nes_processes.retain(|path, child| {
+                    let result = child.kill().and_then(|()| child.wait().map(|_| ()));
+                    if let Err(error) = result {
+                        external_failures.push(format!("{}: {error}", path.display()));
+                        true
+                    } else {
+                        false
+                    }
+                });
                 self.audio_output.clear();
                 self.frame_cadence.reset();
                 self.frame_texture = None;
@@ -661,16 +762,19 @@ impl DesktopApp {
                 };
                 self.last_tick_errors.clear();
                 self.session_content_paths.clear();
-                self.message = if french {
-                    let noun = if count == 1 {
-                        "session fermée"
+                let total = count + external_count.saturating_sub(external_failures.len());
+                self.message = if !external_failures.is_empty() {
+                    if french {
+                        format!("{total} session(s) fermée(s) ; échec(s) sur : {}", external_failures.join("; "))
                     } else {
-                        "sessions fermées"
-                    };
-                    format!("{count} {noun}.")
+                        format!("{total} session(s) closed; failed to stop: {}", external_failures.join("; "))
+                    }
+                } else if french {
+                    let noun = if total == 1 { "session fermée" } else { "sessions fermées" };
+                    format!("{total} {noun}.")
                 } else {
-                    let noun = if count == 1 { "session" } else { "sessions" };
-                    format!("Closed {count} {noun}.")
+                    let noun = if total == 1 { "session" } else { "sessions" };
+                    format!("Closed {total} {noun}.")
                 };
             }
         }
