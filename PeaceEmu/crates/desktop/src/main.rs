@@ -8,7 +8,8 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::error::Error;
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command};
+use std::io::Write;
+use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::time::{Duration, Instant};
 
@@ -192,13 +193,26 @@ fn poll_background_result<T>(receiver: &mut Option<Receiver<T>>) -> Result<Optio
     }
 }
 
+struct ExternalNesProcess {
+    child: Child,
+    commands: ChildStdin,
+    paused: bool,
+}
+
+impl ExternalNesProcess {
+    fn send(&mut self, command: &str) -> Result<(), String> {
+        writeln!(self.commands, "{command}").and_then(|()| self.commands.flush())
+            .map_err(|error| format!("Could not send command to NES module: {error}"))
+    }
+}
+
 struct DesktopApp {
     controller: ApplicationController,
     registry: CoreRegistry,
     probe: NesCartridgeProbe,
     nes_install_receiver: Option<Receiver<Result<PathBuf, String>>>,
     nes_installing: bool,
-    nes_processes: HashMap<PathBuf, Child>,
+    nes_processes: HashMap<PathBuf, ExternalNesProcess>,
     validated_paths: HashSet<PathBuf>,
     nes_uninstall_receiver: Option<Receiver<Result<usize, String>>>,
     nes_uninstalling: bool,
