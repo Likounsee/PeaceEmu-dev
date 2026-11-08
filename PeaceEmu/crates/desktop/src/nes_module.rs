@@ -3,34 +3,12 @@
 //! This adapter has no window, event loop, filesystem access, or audio device.
 //! The PeaceEmu host owns library launch, presentation, input, and persistence.
 
-use emulation_core::content::{ContentFormatProbe, FormatProbeResult};
 use emulation_core::core_io::{AudioBuffer, InputControl, InputEvent, PixelFormat, VideoFrame};
 use emulation_core::{
     CoreCapabilities, CoreDescriptor, CoreError, CoreEvent, CoreRegistry, EmulationCore,
     RegistryError, SystemId, CURRENT_CORE_API_VERSION,
 };
 use peaceemu_nes::session::{NesConfig, NesSession, NES_FRAME_HEIGHT, NES_FRAME_WIDTH};
-
-/// Read-only probe for iNES/NES 2.0 cartridge headers.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct NesCartridgeProbe;
-
-impl ContentFormatProbe for NesCartridgeProbe {
-    fn format_id(&self) -> &'static str {
-        "nes"
-    }
-
-    fn probe(&self, prefix: &[u8]) -> FormatProbeResult {
-        if prefix.len() < 4 {
-            return FormatProbeResult::NeedMoreData { minimum_bytes: 4 };
-        }
-        if prefix[..4] == *b"NES\x1A" {
-            FormatProbeResult::Match
-        } else {
-            FormatProbeResult::NoMatch
-        }
-    }
-}
 
 /// PeaceEmu-owned adapter around the independent Rust NES core.
 #[derive(Default)]
@@ -78,7 +56,7 @@ impl EmulationCore for NesCoreAdapter {
             capabilities: CoreCapabilities {
                 content_loading: true,
                 persistent_saves: true,
-                save_states: false,
+                save_states: true,
                 video_output: true,
                 audio_output: true,
                 input: true,
@@ -168,6 +146,33 @@ impl EmulationCore for NesCoreAdapter {
             self.save_dirty = true;
         }
         Ok(CoreEvent::FrameReady)
+    }
+
+    fn save_state(&self) -> Result<Vec<u8>, CoreError> {
+        let session = self.session()?;
+        let payload = session.save_state().map_err(|_| {
+            CoreError::Execution("could not serialize the complete NES machine state")
+        })?;
+        let mut state = Vec::with_capacity(payload.len() + 1);
+        state.push(self.controller_1);
+        state.extend_from_slice(&payload);
+        Ok(state)
+    }
+
+    fn load_state(&mut self, state: &[u8]) -> Result<(), CoreError> {
+        let Some((&controller_1, payload)) = state.split_first() else {
+            return Err(CoreError::InvalidState("NES save state is empty"));
+        };
+        let session = self.session_mut()?;
+        session
+            .load_state(payload)
+            .map_err(|_| CoreError::InvalidState("NES save state is malformed or incompatible"))?;
+        let has_battery_ram = session.has_battery_backed_ram();
+        self.controller_1 = controller_1;
+        self.pending_video = None;
+        self.pending_audio = None;
+        self.save_dirty = has_battery_ram;
+        Ok(())
     }
 
     fn save_game_data(&self) -> Result<Vec<u8>, CoreError> {
@@ -325,14 +330,36 @@ mod tests {
     }
 
     #[test]
-    fn probe_requires_complete_magic_and_recognizes_ines() {
-        let probe = NesCartridgeProbe;
-        assert_eq!(
-            probe.probe(b"NES"),
-            FormatProbeResult::NeedMoreData { minimum_bytes: 4 }
-        );
-        assert_eq!(probe.probe(b"NES\x1A"), FormatProbeResult::Match);
-        assert_eq!(probe.probe(b"NOPE"), FormatProbeResult::NoMatch);
+    fn adapter_save_states_restore_the_complete_nes_machine() {
+        let mut core = NesCoreAdapter::new();
+        assert!(core.descriptor().capabilities.save_states);
+        core.load_content(&looping_rom()).unwrap();
+        core.run_until_event().unwrap();
+        let saved = core.save_state().unwrap();
+
+        let mut expected = NesCoreAdapter::new();
+        expected.load_content(&looping_rom()).unwrap();
+        expected.load_state(&saved).unwrap();
+        let expected_event = expected.run_until_event().unwrap();
+
+        core.run_until_event().unwrap();
+        core.load_state(&saved).unwrap();
+        assert_eq!(core.run_until_event().unwrap(), expected_event);
+        let actual_frame = core.take_video_frame().unwrap().unwrap();
+        let expected_frame = expected.take_video_frame().unwrap().unwrap();
+        assert_eq!(actual_frame.pixels(), expected_frame.pixels());
+    }
+
+    #[test]
+    fn adapter_rejects_malformed_save_states_without_replacing_the_session() {
+        let mut core = NesCoreAdapter::new();
+        core.load_content(&looping_rom()).unwrap();
+        core.run_until_event().unwrap();
+        assert!(matches!(
+            core.load_state(b"invalid"),
+            Err(CoreError::InvalidState(_))
+        ));
+        assert_eq!(core.run_until_event().unwrap(), CoreEvent::FrameReady);
     }
 
     #[test]
@@ -351,8 +378,8 @@ mod tests {
     fn library_launch_pipeline_selects_and_starts_the_registered_nes_core() {
         let mut registry = CoreRegistry::new();
         register_nes(&mut registry).unwrap();
-        let probe = NesCartridgeProbe;
-        let probes: [&dyn ContentFormatProbe; 1] = [&probe];
+        let probe = crate::nes_probe::NesCartridgeProbe;
+        let probes: [&dyn emulation_core::content::ContentFormatProbe; 1] = [&probe];
         let session = emulation_core::runtime::launch_content(
             &looping_rom(),
             emulation_core::content::ContentLimits::new(32 * 1024 * 1024),

@@ -31,6 +31,7 @@ mod key_bindings;
 mod language_pack;
 mod library_page;
 pub mod manifest_ed25519;
+mod nes_module;
 mod nes_module_manager;
 mod nes_probe;
 mod preferences;
@@ -215,6 +216,8 @@ struct DesktopApp {
     frame_cadence: FrameCadence,
     frame_texture: Option<egui::TextureHandle>,
     game_window_open: bool,
+    game_fullscreen: bool,
+    turbo_held: bool,
     video_size: Option<[u32; 2]>,
     media_status: String,
     audio_output: AudioOutput,
@@ -249,10 +252,14 @@ enum LibraryFormat {
 }
 
 fn visible_library_formats(installed: &BTreeSet<String>) -> Vec<LibraryFormat> {
-    [LibraryFormat::GameBoy, LibraryFormat::Nes]
-        .into_iter()
-        .filter(|format| format.module_id().is_some_and(|id| installed.contains(id)))
-        .collect()
+    let mut formats = Vec::with_capacity(2);
+    if installed.contains("game-boy") {
+        formats.push(LibraryFormat::GameBoy);
+    }
+    // NES is built into this desktop build and must not disappear when the
+    // optional legacy standalone module package is not installed.
+    formats.push(LibraryFormat::Nes);
+    formats
 }
 
 impl LibraryFormat {
@@ -335,7 +342,8 @@ impl DesktopPage {
 
 impl DesktopApp {
     fn new() -> Result<Self, Box<dyn Error>> {
-        let registry = CoreRegistry::new();
+        let mut registry = CoreRegistry::new();
+        nes_module::register_nes(&mut registry)?;
         let host = HostRuntime::new(HostRuntimeConfig::default())?;
         let mut controller = ApplicationController::new(host);
         let config_path = config_file_path();
@@ -460,6 +468,8 @@ impl DesktopApp {
             frame_cadence: FrameCadence::new(60, 3)?,
             frame_texture: None,
             game_window_open: false,
+            game_fullscreen: false,
+            turbo_held: false,
             video_size: None,
             media_status: "No active session.".to_owned(),
             audio_output: AudioOutput::new(),
@@ -809,52 +819,9 @@ impl DesktopApp {
             return;
         }
 
-        // NES is an optional, separately downloaded module. Never fall back to a
-        // built-in core: launching from the library always starts the installed module.
-        if Path::new(&path)
-            .extension()
-            .is_some_and(|extension| extension.to_string_lossy().eq_ignore_ascii_case("nes"))
-        {
-            let Some(executable) = nes_module_manager::installed_executable_path() else {
-                self.message = if self.language == "fr" {
-                    "Le module NES n’est pas installé. Ouvrez Systèmes pour le télécharger."
-                        .to_owned()
-                } else {
-                    "The NES module is not installed. Open Systems to download it.".to_owned()
-                };
-                self.navigate_to(DesktopPage::Systems);
-                return;
-            };
-            if !self.key_bindings.contains_key("nes") {
-                let bindings = key_bindings::KeyBindings::load(self.config_path.as_deref(), "nes");
-                self.key_bindings.insert("nes".to_owned(), bindings);
-            }
-            let key_codes = self.key_bindings["nes"].nes_virtual_key_codes();
-            let key_argument = key_codes
-                .iter()
-                .map(i32::to_string)
-                .collect::<Vec<_>>()
-                .join(",");
-            let mut command = std::process::Command::new(&executable);
-            command.arg(&path).arg("--keys").arg(key_argument);
-            match command.spawn() {
-                Ok(_) => {
-                    self.message = if self.language == "fr" {
-                        "Jeu NES lancé dans la fenêtre du module.".to_owned()
-                    } else {
-                        "NES game launched in the module window.".to_owned()
-                    };
-                }
-                Err(error) => {
-                    self.message = if self.language == "fr" {
-                        format!("Impossible de lancer le module NES : {error}")
-                    } else {
-                        format!("Could not launch the NES module: {error}")
-                    };
-                }
-            }
-            return;
-        }
+        // NES is registered as an in-process core. Launch it through the same
+        // host controller as every other system so it appears in Sessions and
+        // uses PeaceEmu's shared input, video, audio and persistence lifecycle.
 
         // Release held controls in every session before creating/switching sessions.
         // Input may have been sent to a non-active session earlier; failing to release
@@ -968,17 +935,24 @@ impl DesktopApp {
     ) {
         // egui exposes modifier state rather than standalone Key events for these keys.
         // mac_cmd maps to the platform's Super/Windows/Command modifier.
-        let current = [modifiers.ctrl, modifiers.alt, modifiers.shift, modifiers.mac_cmd];
+        let current = [
+            modifiers.ctrl,
+            modifiers.alt,
+            modifiers.shift,
+            modifiers.mac_cmd,
+        ];
         let virtual_keys = [0x11, 0x12, 0x10, 0x5B];
         if let Some(module_id) = self.active_session_module_id() {
             if !self.key_bindings.contains_key(&module_id) {
-                let bindings = key_bindings::KeyBindings::load(self.config_path.as_deref(), &module_id);
+                let bindings =
+                    key_bindings::KeyBindings::load(self.config_path.as_deref(), &module_id);
                 self.key_bindings.insert(module_id.clone(), bindings);
             }
             if let Some(bindings) = self.key_bindings.get(&module_id) {
                 for index in 0..current.len() {
                     if current[index] != self.modifier_pressed[index] {
-                        if let Some(control) = bindings.control_for_virtual_key(virtual_keys[index]) {
+                        if let Some(control) = bindings.control_for_virtual_key(virtual_keys[index])
+                        {
                             input_events.push((control, current[index]));
                         }
                     }
@@ -1199,6 +1173,42 @@ impl DesktopApp {
                 }
             }
         }
+    }
+
+    fn quick_save_state(&mut self, id: SessionId) {
+        let is_running = self
+            .controller
+            .session_summary(id)
+            .is_ok_and(|summary| summary.state == emulation_core::runtime::SessionState::Running);
+        if is_running {
+            self.session_action(id, SessionAction::Pause);
+        }
+        let is_paused = self
+            .controller
+            .session_summary(id)
+            .is_ok_and(|summary| summary.state == emulation_core::runtime::SessionState::Paused);
+        if is_paused {
+            self.save_state_action(id);
+        }
+    }
+
+    fn quick_load_state(&mut self, id: SessionId) {
+        let is_running = self
+            .controller
+            .session_summary(id)
+            .is_ok_and(|summary| summary.state == emulation_core::runtime::SessionState::Running);
+        if is_running {
+            self.session_action(id, SessionAction::Pause);
+        }
+        let is_paused = self
+            .controller
+            .session_summary(id)
+            .is_ok_and(|summary| summary.state == emulation_core::runtime::SessionState::Paused);
+        if !is_paused {
+            return;
+        }
+        self.load_state_action(id);
+        self.session_action(id, SessionAction::Resume);
     }
 
     fn load_state_action(&mut self, id: SessionId) {
@@ -1683,6 +1693,11 @@ impl DesktopApp {
         let video_size = self.video_size;
         let mut close_requested = false;
         let mut lost_focus = false;
+        let mut reset_requested = false;
+        let mut fullscreen_toggle_requested = false;
+        let mut quick_save_requested = false;
+        let mut quick_load_requested = false;
+        let mut turbo_change = None;
         let mut input_events = Vec::new();
         let mut modifier_snapshot = egui::Modifiers::default();
         let builder = egui::ViewportBuilder::default()
@@ -1696,7 +1711,8 @@ impl DesktopApp {
                 close_requested = true;
                 return;
             }
-            let (events, modifiers) = viewport_context.input(|input| (input.events.clone(), input.modifiers));
+            let (events, modifiers) =
+                viewport_context.input(|input| (input.events.clone(), input.modifiers));
             modifier_snapshot = modifiers;
             for event in events {
                 match event {
@@ -1709,8 +1725,17 @@ impl DesktopApp {
                         if repeat && pressed {
                             continue;
                         }
-                        if let Some(control) = self.control_for_active_session(key) {
-                            input_events.push((control, pressed));
+                        match key {
+                            egui::Key::F1 if pressed => reset_requested = true,
+                            egui::Key::F5 if pressed => quick_save_requested = true,
+                            egui::Key::F8 if pressed => quick_load_requested = true,
+                            egui::Key::F11 if pressed => fullscreen_toggle_requested = true,
+                            egui::Key::Tab => turbo_change = Some(pressed),
+                            _ => {
+                                if let Some(control) = self.control_for_active_session(key) {
+                                    input_events.push((control, pressed));
+                                }
+                            }
                         }
                     }
                     egui::Event::WindowFocused(false) => lost_focus = true,
@@ -1740,13 +1765,44 @@ impl DesktopApp {
         });
 
         if lost_focus || close_requested {
+            self.turbo_held = false;
+            self.frame_cadence = FrameCadence::new(60, 3).expect("valid default frame cadence");
             self.modifier_pressed = [false; 4];
             if let Err(error) = self.release_game_inputs() {
                 self.message = format!("Could not release game inputs: {error}");
             }
         } else {
+            if let Some(held) = turbo_change {
+                if self.turbo_held != held {
+                    self.turbo_held = held;
+                    self.frame_cadence = FrameCadence::new(60, if held { 12 } else { 3 })
+                        .expect("valid turbo frame cadence");
+                }
+            }
             self.append_modifier_input_events(modifier_snapshot, &mut input_events);
             self.send_game_input_events(input_events);
+        }
+        if fullscreen_toggle_requested {
+            self.game_fullscreen = !self.game_fullscreen;
+            context.send_viewport_cmd_to(
+                viewport_id,
+                egui::ViewportCommand::Fullscreen(self.game_fullscreen),
+            );
+        }
+        if reset_requested {
+            if let Some(id) = self.controller.active_session() {
+                self.session_action(id, SessionAction::Reset);
+            }
+        }
+        if quick_save_requested {
+            if let Some(id) = self.controller.active_session() {
+                self.quick_save_state(id);
+            }
+        }
+        if quick_load_requested {
+            if let Some(id) = self.controller.active_session() {
+                self.quick_load_state(id);
+            }
         }
         if close_requested {
             self.game_window_open = false;
@@ -1762,13 +1818,21 @@ impl DesktopApp {
         // the active session has since been deselected.
         self.autosave_dirty_game_saves();
         let now = Instant::now();
-        let elapsed = now.saturating_duration_since(self.last_tick);
+        let mut elapsed = now.saturating_duration_since(self.last_tick);
         self.last_tick = now;
+        if self.turbo_held {
+            elapsed = elapsed.saturating_mul(4);
+        }
 
         if self.active_page == DesktopPage::Game && !self.game_window_open {
-            let (events, modifiers) = context.input(|input| (input.events.clone(), input.modifiers));
+            let (events, modifiers) =
+                context.input(|input| (input.events.clone(), input.modifiers));
             let mut input_events = Vec::new();
             let mut lost_focus = false;
+            let mut reset_requested = false;
+            let mut quick_save_requested = false;
+            let mut quick_load_requested = false;
+            let mut turbo_change = None;
             for event in events {
                 match event {
                     egui::Event::Key {
@@ -1780,8 +1844,16 @@ impl DesktopApp {
                         if repeat && pressed {
                             continue;
                         }
-                        if let Some(control) = self.control_for_active_session(key) {
-                            input_events.push((control, pressed));
+                        match key {
+                            egui::Key::F1 if pressed => reset_requested = true,
+                            egui::Key::F5 if pressed => quick_save_requested = true,
+                            egui::Key::F8 if pressed => quick_load_requested = true,
+                            egui::Key::Tab => turbo_change = Some(pressed),
+                            _ => {
+                                if let Some(control) = self.control_for_active_session(key) {
+                                    input_events.push((control, pressed));
+                                }
+                            }
                         }
                     }
                     egui::Event::WindowFocused(false) => lost_focus = true,
@@ -1789,13 +1861,37 @@ impl DesktopApp {
                 }
             }
             if lost_focus {
+                self.turbo_held = false;
+                self.frame_cadence = FrameCadence::new(60, 3).expect("valid default frame cadence");
                 self.modifier_pressed = [false; 4];
                 if let Err(error) = self.release_game_inputs() {
                     self.message = error;
                 }
             } else {
+                if let Some(held) = turbo_change {
+                    if self.turbo_held != held {
+                        self.turbo_held = held;
+                        self.frame_cadence = FrameCadence::new(60, if held { 12 } else { 3 })
+                            .expect("valid turbo frame cadence");
+                    }
+                }
                 self.append_modifier_input_events(modifiers, &mut input_events);
                 self.send_game_input_events(input_events);
+            }
+            if reset_requested {
+                if let Some(id) = self.controller.active_session() {
+                    self.session_action(id, SessionAction::Reset);
+                }
+            }
+            if quick_save_requested {
+                if let Some(id) = self.controller.active_session() {
+                    self.quick_save_state(id);
+                }
+            }
+            if quick_load_requested {
+                if let Some(id) = self.controller.active_session() {
+                    self.quick_load_state(id);
+                }
             }
         }
 
@@ -2580,9 +2676,9 @@ mod preference_tests {
     }
 
     #[test]
-    fn library_categories_follow_installed_modules() {
+    fn library_categories_always_include_builtin_nes() {
         let none = BTreeSet::new();
-        assert!(visible_library_formats(&none).is_empty());
+        assert_eq!(visible_library_formats(&none), vec![LibraryFormat::Nes]);
 
         let nes = ["nes".to_owned()].into_iter().collect();
         assert_eq!(visible_library_formats(&nes), vec![LibraryFormat::Nes]);
@@ -2590,7 +2686,7 @@ mod preference_tests {
         let game_boy = ["game-boy".to_owned()].into_iter().collect();
         assert_eq!(
             visible_library_formats(&game_boy),
-            vec![LibraryFormat::GameBoy]
+            vec![LibraryFormat::GameBoy, LibraryFormat::Nes]
         );
 
         let both = ["game-boy".to_owned(), "nes".to_owned()]
