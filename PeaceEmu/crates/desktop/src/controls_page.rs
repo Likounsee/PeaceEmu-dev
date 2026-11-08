@@ -120,44 +120,6 @@ fn draw_nes_controller(
         egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(187, 189, 194)),
     );
 
-    // Four recessed case screws: dark wells, metallic heads and a fine slot.
-    // They sit in the exposed grey plastic, like the original two-piece shell.
-    for (x, y) in [
-        (0.025, 0.285),
-        (0.975, 0.285),
-        (0.025, 0.965),
-        (0.975, 0.965),
-    ] {
-        let center = p(x, y);
-        let screw_radius = rect.height() * 0.014;
-        painter.circle_filled(
-            center + egui::vec2(0.0, 1.0),
-            screw_radius * 1.55,
-            egui::Color32::from_rgb(139, 141, 146),
-        );
-        painter.circle_filled(
-            center,
-            screw_radius * 1.42,
-            egui::Color32::from_rgb(91, 93, 98),
-        );
-        painter.circle_filled(
-            center - egui::vec2(screw_radius * 0.12, screw_radius * 0.16),
-            screw_radius,
-            egui::Color32::from_rgb(194, 196, 201),
-        );
-        painter.circle_stroke(
-            center,
-            screw_radius * 1.38,
-            egui::Stroke::new(0.8_f32, egui::Color32::from_rgb(112, 114, 119)),
-        );
-        painter.line_segment(
-            [
-                center - egui::vec2(screw_radius * 0.52, screw_radius * 0.08),
-                center + egui::vec2(screw_radius * 0.52, screw_radius * 0.08),
-            ],
-            egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(79, 81, 86)),
-        );
-    }
     // Fine mould lines on the top and bottom edges of the casing.
     painter.line_segment(
         [p(0.035, 0.245), p(0.965, 0.245)],
