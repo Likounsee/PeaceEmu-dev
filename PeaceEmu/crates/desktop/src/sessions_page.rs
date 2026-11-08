@@ -775,8 +775,9 @@ impl DesktopApp {
                 let count = self.controller.close_all_sessions();
                 let external_count = self.nes_processes.len();
                 let mut external_failures = Vec::new();
-                self.nes_processes.retain(|path, child| {
-                    let result = child.kill().and_then(|()| child.wait().map(|_| ()));
+                self.nes_processes.retain(|path, process| {
+                    let _ = process.send("QUIT");
+                    let result = process.child.kill().and_then(|()| process.child.wait().map(|_| ()));
                     if let Err(error) = result {
                         external_failures.push(format!("{}: {error}", path.display()));
                         true
