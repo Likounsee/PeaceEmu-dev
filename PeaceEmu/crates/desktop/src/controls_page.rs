@@ -227,7 +227,6 @@ impl DesktopApp {
                     // visual reference, not a shape to be approximated in egui.
                     let image_size = texture.size_vec2();
                     let mut image_rect = egui::Rect::NOTHING;
-                    let mut key_targets = Vec::new();
 
                     ui.vertical_centered(|ui| {
                         ui.label(
@@ -277,8 +276,9 @@ impl DesktopApp {
                             }
                         }
 
-                        // A clear focus ring marks the physical control currently
-                        // being remapped without altering the reference artwork.
+                        // Highlight the selected physical control directly on the
+                        // artwork. A translucent fill and soft outer rings make it
+                        // visible without hiding the original controller details.
                         let anchor = nes_button_anchor(selected_action, image_rect);
                         let radius = if selected_action == 4 || selected_action == 5 {
                             image_rect.width() * 0.036
@@ -287,12 +287,25 @@ impl DesktopApp {
                         } else {
                             image_rect.width() * 0.031
                         };
-                        ui.painter().circle_stroke(
+                        let painter = ui.painter();
+                        painter.circle_filled(
+                            anchor,
+                            radius,
+                            palette.accent.linear_multiply(0.28),
+                        );
+                        painter.circle_stroke(
                             anchor,
                             radius,
                             egui::Stroke::new(3.0_f32, palette.accent),
                         );
-                        ui.painter().circle_filled(anchor, 4.0, palette.accent);
+                        painter.circle_stroke(
+                            anchor,
+                            radius + 4.0,
+                            egui::Stroke::new(
+                                2.0_f32,
+                                palette.accent.linear_multiply(0.55),
+                            ),
+                        );
 
                         ui.add_space(14.0);
                         ui.label(
@@ -339,7 +352,6 @@ impl DesktopApp {
                                             selected_action = index;
                                             clicked = Some(index);
                                         }
-                                        key_targets.push((index, response.rect.center_top()));
                                     });
                                     if position % 4 == 3 {
                                         ui.end_row();
@@ -348,24 +360,6 @@ impl DesktopApp {
                             });
                     });
 
-                    // Connect the selected physical button to its key assignment.
-                    if let Some((_, target)) = key_targets
-                        .iter()
-                        .find(|(index, _)| *index == selected_action)
-                    {
-                        let start = nes_button_anchor(selected_action, image_rect);
-                        let end = *target;
-                        let bend = egui::pos2(start.x, (start.y + end.y) * 0.5);
-                        ui.painter().line_segment(
-                            [start, bend],
-                            egui::Stroke::new(1.5_f32, palette.accent),
-                        );
-                        ui.painter().arrow(
-                            bend,
-                            end - bend,
-                            egui::Stroke::new(1.5_f32, palette.accent),
-                        );
-                    }
                 } else {
                     ui.label(if french {
                         "Impossible de charger NES-Controller.png depuis la racine du projet."
