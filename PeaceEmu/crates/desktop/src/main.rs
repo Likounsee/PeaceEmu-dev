@@ -232,7 +232,7 @@ impl ExternalNesProcess {
 }
 
 impl DesktopApp {
-    pub(super) fn send_nes_command(&mut self, path: &Path, command: &str) {
+    pub(crate) fn send_nes_command(&mut self, path: &Path, command: &str) {
         let result = self
             .nes_processes
             .get_mut(path)
