@@ -532,32 +532,88 @@ impl DesktopApp {
                             .color(palette.text_dim),
                     );
                     ui.horizontal_wrapped(|ui| {
-                        if ui.button(if *paused {
-                            if french { "Reprendre (P)" } else { "Resume (P)" }
-                        } else {
-                            if french { "Pause (P)" } else { "Pause (P)" }
-                        }).clicked() {
+                        if ui
+                            .button(if *paused {
+                                if french {
+                                    "Reprendre (P)"
+                                } else {
+                                    "Resume (P)"
+                                }
+                            } else if french {
+                                "Pause (P)"
+                            } else {
+                                "Pause (P)"
+                            })
+                            .clicked()
+                        {
                             if let Some(process) = self.nes_processes.get_mut(path) {
-                                let command = if process.paused { "RESUME" } else { "PAUSE" };
-                                if process.send(command).is_ok() { process.paused = !process.paused; }
+                                let command = if process.paused {
+                                    "RESUME"
+                                } else {
+                                    "PAUSE"
+                                };
+                                if process.send(command).is_ok() {
+                                    process.paused = !process.paused;
+                                }
                             }
                         }
                         if ui.button("Reset (F1)").clicked() {
-                            if let Some(process) = self.nes_processes.get_mut(path) { let _ = process.send("RESET"); }
+                            if let Some(process) = self.nes_processes.get_mut(path) {
+                                let _ = process.send("RESET");
+                            }
                         }
-                        if ui.button(if french { "Sauver l'état (F5)" } else { "Save state (F5)" }).clicked() {
-                            if let Some(process) = self.nes_processes.get_mut(path) { let _ = process.send("SAVE_STATE"); }
+                        if ui
+                            .button(if french {
+                                "Sauver l'état (F5)"
+                            } else {
+                                "Save state (F5)"
+                            })
+                            .clicked()
+                        {
+                            if let Some(process) = self.nes_processes.get_mut(path) {
+                                let _ = process.send("SAVE_STATE");
+                            }
                         }
-                        if ui.button(if french { "Restaurer (F8)" } else { "Load state (F8)" }).clicked() {
-                            if let Some(process) = self.nes_processes.get_mut(path) { let _ = process.send("LOAD_STATE"); }
+                        if ui
+                            .button(if french {
+                                "Restaurer (F8)"
+                            } else {
+                                "Load state (F8)"
+                            })
+                            .clicked()
+                        {
+                            if let Some(process) = self.nes_processes.get_mut(path) {
+                                let _ = process.send("LOAD_STATE");
+                            }
                         }
-                        if ui.button(if french { "Plein écran (F11)" } else { "Fullscreen (F11)" }).clicked() {
-                            if let Some(process) = self.nes_processes.get_mut(path) { let _ = process.send("FULLSCREEN"); }
+                        if ui
+                            .button(if french {
+                                "Plein écran (F11)"
+                            } else {
+                                "Fullscreen (F11)"
+                            })
+                            .clicked()
+                        {
+                            if let Some(process) = self.nes_processes.get_mut(path) {
+                                let _ = process.send("FULLSCREEN");
+                            }
                         }
-                        if ui.button(if french { "Turbo x4" } else { "Turbo x4" }).clicked() {
-                            if let Some(process) = self.nes_processes.get_mut(path) { let _ = process.send("TOGGLE_TURBO"); }
+                        if ui
+                            .button(if french { "Turbo x4" } else { "Turbo x4" })
+                            .clicked()
+                        {
+                            if let Some(process) = self.nes_processes.get_mut(path) {
+                                let _ = process.send("TOGGLE_TURBO");
+                            }
                         }
-                        if ui.button(if french { "Fermer le jeu" } else { "Close game" }).clicked() {
+                        if ui
+                            .button(if french {
+                                "Fermer le jeu"
+                            } else {
+                                "Close game"
+                            })
+                            .clicked()
+                        {
                             closing_external = Some(path.clone());
                         }
                         ui.label(
