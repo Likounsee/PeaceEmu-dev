@@ -182,10 +182,26 @@ fn draw_nes_controller(
         };
         let r = rect.height() * 0.033;
         match direction {
-            0 => vec![c + egui::vec2(0.0, -r), c + egui::vec2(-r, r * 0.55), c + egui::vec2(r, r * 0.55)],
-            1 => vec![c + egui::vec2(0.0, r), c + egui::vec2(-r, -r * 0.55), c + egui::vec2(r, -r * 0.55)],
-            2 => vec![c + egui::vec2(-r, 0.0), c + egui::vec2(r * 0.55, -r), c + egui::vec2(r * 0.55, r)],
-            _ => vec![c + egui::vec2(r, 0.0), c + egui::vec2(-r * 0.55, -r), c + egui::vec2(-r * 0.55, r)],
+            0 => vec![
+                c + egui::vec2(0.0, -r),
+                c + egui::vec2(-r, r * 0.55),
+                c + egui::vec2(r, r * 0.55),
+            ],
+            1 => vec![
+                c + egui::vec2(0.0, r),
+                c + egui::vec2(-r, -r * 0.55),
+                c + egui::vec2(r, -r * 0.55),
+            ],
+            2 => vec![
+                c + egui::vec2(-r, 0.0),
+                c + egui::vec2(r * 0.55, -r),
+                c + egui::vec2(r * 0.55, r),
+            ],
+            _ => vec![
+                c + egui::vec2(r, 0.0),
+                c + egui::vec2(-r * 0.55, -r),
+                c + egui::vec2(-r * 0.55, r),
+            ],
         }
     };
     for direction in 0..4 {
@@ -195,7 +211,11 @@ fn draw_nes_controller(
             egui::Stroke::new(0.8_f32, egui::Color32::from_rgb(8, 9, 11)),
         ));
     }
-    painter.circle_filled(point(0.175, 0.535), unit * 0.22, egui::Color32::from_rgb(12, 13, 15));
+    painter.circle_filled(
+        point(0.175, 0.535),
+        unit * 0.22,
+        egui::Color32::from_rgb(12, 13, 15),
+    );
     painter.circle_stroke(
         point(0.175, 0.535),
         unit * 0.22,
@@ -204,7 +224,11 @@ fn draw_nes_controller(
 
     // Select / Start sit in a shared light recessed plate, with red legends above.
     let plate = control_rect(0.515, 0.625, 0.295, 0.205);
-    painter.rect_filled(plate, egui::Rounding::same(8.0), egui::Color32::from_rgb(225, 226, 229));
+    painter.rect_filled(
+        plate,
+        egui::Rounding::same(8.0),
+        egui::Color32::from_rgb(225, 226, 229),
+    );
     painter.rect_stroke(
         plate,
         egui::Rounding::same(8.0),
@@ -251,7 +275,11 @@ fn draw_nes_controller(
             center,
             egui::vec2(button_radius * 2.35, button_radius * 2.35),
         );
-        painter.rect_filled(bezel, egui::Rounding::same(7.0), egui::Color32::from_rgb(218, 220, 224));
+        painter.rect_filled(
+            bezel,
+            egui::Rounding::same(7.0),
+            egui::Color32::from_rgb(218, 220, 224),
+        );
         painter.rect_stroke(
             bezel,
             egui::Rounding::same(7.0),
@@ -302,8 +330,20 @@ fn draw_nes_controller(
         .map(|(index, target)| (*index, *target))
         .collect::<Vec<_>>();
     hit_targets.extend([(9, select_rect), (8, start_rect)]);
-    hit_targets.push((5, egui::Rect::from_center_size(b_center, egui::vec2(button_radius * 2.4, button_radius * 2.4))));
-    hit_targets.push((4, egui::Rect::from_center_size(a_center, egui::vec2(button_radius * 2.4, button_radius * 2.4))));
+    hit_targets.push((
+        5,
+        egui::Rect::from_center_size(
+            b_center,
+            egui::vec2(button_radius * 2.4, button_radius * 2.4),
+        ),
+    ));
+    hit_targets.push((
+        4,
+        egui::Rect::from_center_size(
+            a_center,
+            egui::vec2(button_radius * 2.4, button_radius * 2.4),
+        ),
+    ));
 
     let mut clicked = None;
     for (index, target) in hit_targets {
@@ -324,18 +364,29 @@ fn draw_nes_controller(
     let accent_stroke = egui::Stroke::new(3.0_f32, palette.accent);
     match selected_action {
         0..=3 => {
-            if let Some((_, target)) = dpad_parts.iter().find(|(index, _)| *index == selected_action) {
+            if let Some((_, target)) = dpad_parts
+                .iter()
+                .find(|(index, _)| *index == selected_action)
+            {
                 painter.rect_filled(*target, egui::Rounding::same(5.0), accent_fill);
                 painter.rect_stroke(*target, egui::Rounding::same(5.0), accent_stroke);
             }
         }
         4 | 5 => {
-            let center = if selected_action == 4 { a_center } else { b_center };
+            let center = if selected_action == 4 {
+                a_center
+            } else {
+                b_center
+            };
             painter.circle_filled(center, button_radius * 0.91, accent_fill);
             painter.circle_stroke(center, button_radius * 0.91, accent_stroke);
         }
         8 | 9 => {
-            let target = if selected_action == 8 { start_rect } else { select_rect };
+            let target = if selected_action == 8 {
+                start_rect
+            } else {
+                select_rect
+            };
             painter.rect_filled(target, egui::Rounding::same(10.0), accent_fill);
             painter.rect_stroke(target, egui::Rounding::same(10.0), accent_stroke);
         }
