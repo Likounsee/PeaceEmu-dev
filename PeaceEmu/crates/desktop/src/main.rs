@@ -63,6 +63,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
+    #[cfg(windows)]
+    if let Err(error) = windows_app_identity::set_current_process_app_user_model_id("Likounsee.PeaceEmu") {
+        eprintln!("PeaceEmu: could not set Windows taskbar identity: {error}");
+    }
+
     let app = DesktopApp::new()?;
     let options = eframe::NativeOptions {
         // An explicit icon replaces egui's default white "e" window/taskbar icon.
@@ -929,10 +934,17 @@ impl DesktopApp {
                 .map(i32::to_string)
                 .collect::<Vec<_>>()
                 .join(",");
-            match Command::new(executable)
+            let mut child_command = Command::new(executable);
+            child_command
                 .arg(&canonical_path)
                 .arg("--keys")
-                .arg(nes_keys)
+                .arg(nes_keys);
+            if let Ok(host_executable) = std::env::current_exe() {
+                child_command
+                    .arg("--host-executable")
+                    .arg(host_executable);
+            }
+            match child_command
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::null())
