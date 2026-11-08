@@ -280,16 +280,6 @@ fn draw_nes_controller(
         egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(165, 168, 174)),
     );
 
-    // Red SELECT / START legends sit above two narrow, pill-shaped rubber keys.
-    for (label, center) in [("SELECT", p(0.405, 0.842)), ("START", p(0.535, 0.842))] {
-        painter.text(
-            center,
-            egui::Align2::CENTER_CENTER,
-            label,
-            egui::FontId::proportional(rect.height() * 0.060),
-            logo,
-        );
-    }
     let plate = r(0.465, 0.842, 0.275, 0.085);
     painter.rect_filled(
         plate.translate(egui::vec2(0.0, 2.0)),
@@ -302,6 +292,16 @@ fn draw_nes_controller(
         egui::Rounding::same(7.0),
         egui::Stroke::new(2.0_f32, egui::Color32::from_rgb(224, 226, 230)),
     );
+    // Red SELECT / START legends are printed on top of the lower silver tab.
+    for (label, center) in [("SELECT", p(0.405, 0.842)), ("START", p(0.535, 0.842))] {
+        painter.text(
+            center,
+            egui::Align2::CENTER_CENTER,
+            label,
+            egui::FontId::proportional(rect.height() * 0.060),
+            logo,
+        );
+    }
     let select = r(0.405, 0.705, 0.090, 0.070);
     let start = r(0.535, 0.705, 0.090, 0.070);
     // SELECT and START are narrow rubber capsules mounted diagonally at 45°.
