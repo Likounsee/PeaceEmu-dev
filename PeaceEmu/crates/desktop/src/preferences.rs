@@ -223,6 +223,7 @@ pub(crate) fn write_preferences(
     write_preferences_with_language(path, dark_mode, ui_scale, accent_rgb, "en", paths)
 }
 
+#[cfg(test)]
 pub(crate) fn write_preferences_with_language(
     path: &Path,
     dark_mode: bool,
