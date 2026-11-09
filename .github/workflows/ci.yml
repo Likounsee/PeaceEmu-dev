@@ -87,6 +87,7 @@ jobs:
         with:
           manifest-path: PeaceEmu/Cargo.toml
           command: check
+          rust-version: stable
 
       - name: Audit desktop dependencies and licenses
         if: runner.os == 'Linux'
@@ -94,6 +95,7 @@ jobs:
         with:
           manifest-path: PeaceEmu/crates/desktop/Cargo.toml
           command: check
+          rust-version: stable
 
   desktop-smoke:
     name: Desktop startup smoke test
