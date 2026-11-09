@@ -246,6 +246,13 @@ pub(crate) fn write_preferences_with_language(
     )
 }
 
+pub(crate) struct PreferenceWriteOptions<'a> {
+    pub(crate) language: &'a str,
+    pub(crate) turbo_speed: f32,
+    pub(crate) turbo_mute_audio: bool,
+}
+
+#[cfg(test)]
 pub(crate) fn write_preferences_with_language_and_turbo(
     path: &Path,
     dark_mode: bool,
@@ -260,9 +267,11 @@ pub(crate) fn write_preferences_with_language_and_turbo(
         dark_mode,
         ui_scale,
         accent_rgb,
-        language,
-        turbo_speed,
-        false,
+        PreferenceWriteOptions {
+            language,
+            turbo_speed,
+            turbo_mute_audio: false,
+        },
         paths,
     )
 }
@@ -272,11 +281,10 @@ pub(crate) fn write_preferences_with_language_turbo_and_audio(
     dark_mode: bool,
     ui_scale: f32,
     accent_rgb: [u8; 3],
-    language: &str,
-    turbo_speed: f32,
-    turbo_mute_audio: bool,
+    options: PreferenceWriteOptions<'_>,
     paths: &[PathBuf],
 ) -> std::io::Result<()> {
+    let PreferenceWriteOptions { language, turbo_speed, turbo_mute_audio } = options;
     let parent = path.parent().ok_or_else(|| {
         std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
