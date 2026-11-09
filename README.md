@@ -1,40 +1,24 @@
 # PeaceEmu
 
-<p align="center">
-  <img src="PeaceEmu/crates/desktop/assets/branding/bird + text.png" alt="PeaceEmu" width="420">
-</p>
+PeaceEmu est un projet d'émulation multi-consoles en Rust. Il repose sur une application de bureau commune et des modules de console distribués séparément.
 
-<p align="center"><strong>A modular multi-console emulation project.</strong></p>
+[Site officiel](https://likounsee.github.io/PeaceEmu/)
 
-<p align="center"><a href="https://likounsee.github.io/PeaceEmu/">Visit the official PeaceEmu website</a></p>
+## État du projet
 
-**PeaceEmu is an in-development, modular multi-console emulation project.** Its long-term goal is to host independently testable emulation cores behind a shared application and tooling layer. The repository is at the foundation stage; no console is claimed as supported until a real core and reproducible tests demonstrate that support.
+Le projet est en développement. L'application hôte fournit l'interface, la bibliothèque de jeux, la gestion des sessions, des préférences et l'installation des modules. Les modules de console évoluent séparément : la présence d'un module installé ne signifie pas à elle seule que tous les jeux ou toutes les fonctions de la console sont compatibles.
 
-## Goals
+## Structure
 
-- Build shared components primarily in stable Rust, with explicit errors and testable boundaries.
-- Integrate C or C++ only when a mature, legally reusable library or a concrete interoperability/performance need justifies it.
-- Keep cores independent of the UI and make audio/video ownership and timing explicit.
-- For consoles with software interfaces, aim to reproduce or independently recreate their dashboards, system menus, launchers and settings interfaces when feasible.
-- Provide optional, reversible visual enhancements for older systems, while retaining a faithful original-presentation mode and clearly distinguishing recreated interfaces from original firmware.
-- Validate platform behavior with reproducible tests rather than treating compilation as compatibility.
-- Treat game images, firmware, configuration and save files as untrusted input.
+- `PeaceEmu/crates/core` — contrats, runtime, sessions, modules, contenus et sauvegardes.
+- `PeaceEmu/crates/app` — contrôleur applicatif partagé.
+- `PeaceEmu/crates/desktop` — interface native, bibliothèque, paramètres et gestion des modules.
+- `PeaceEmu/crates/windows-*` — intégrations et garanties propres à Windows.
+- `.github/workflows` — intégration continue et vérifications multiplateformes.
 
-## Repository layout
+## Développement
 
-- `PeaceEmu/` — Cargo workspace, source crates and technical documentation.
-- `.github/workflows/` — GitHub Actions quality gates.
-- `PeaceEmu/docs/` — architecture, interface, roadmap, testing, security and legal notes.
-
-## Current implementation
-
-The shared Rust core crate defines validated system identifiers, capability metadata, a core registry, an independent-session lifecycle controller, bounded execution requests, common media payloads, and host-side input state with duplicate-transition suppression and explicit release recovery. Module selection/state persistence and host performance planning are also present as foundations. Runtime tests cover lifecycle transitions, error recovery, independent session creation, and shared input-state behavior.
-
-Console-specific implementations are developed in separate module repositories and are not embedded in this host repository. This repository focuses on the shared runtime, module contracts, desktop application, integration, and packaging. No system is currently claimed as supported.
-
-## Build and test
-
-Run from the project directory:
+Prérequis : Rust stable avec `rustfmt` et `clippy`. Depuis la racine du dépôt :
 
 ```sh
 cd PeaceEmu
@@ -44,22 +28,20 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked
 ```
 
-GitHub Actions runs formatting, locked workspace tests, Clippy with warnings denied, desktop-crate tests and Clippy, and warning-free workspace documentation generation on Linux, macOS and Windows. It runs on relevant source/documentation changes pushed to `PeaceEmu`, pull requests targeting that branch, or manual dispatch. The workflow configuration is checked in; the latest run must still be verified in GitHub Actions before these checks can be called green.
+L'application de bureau est un crate séparé du workspace principal :
 
-## Roadmap
+```sh
+cargo run --manifest-path crates/desktop/Cargo.toml
+cargo test --manifest-path crates/desktop/Cargo.toml --all-targets --locked
+cargo clippy --manifest-path crates/desktop/Cargo.toml --all-targets --locked -- -D warnings
+```
 
-Development priority is the **global emulator framework**, not expanding one console core. Current priorities are:
+La CI vérifie les crates Rust et l'application de bureau sur Linux, Windows et macOS, ainsi que le démarrage de l'application sur Linux. Consultez l'onglet **Actions** pour connaître le résultat du commit concerné.
 
-1. **P0 — Reliable shared runtime:** lifecycle and error semantics, module contracts and capability enforcement, generic content validation, and regression tests.
-2. **P1 — Complete launch path:** multi-session orchestration, common input/video/audio contracts, host timing, and validated persistent saves/save states.
-3. **P1 — Minimal host application:** select content and module, launch/pause/stop sessions, and surface diagnostics.
-4. **P2 — Security and diagnostics:** trusted module/catalogue handling, safe installation and recovery, structured errors, fuzzing, and dependency/package checks.
-5. **P3 — Measured quality:** conformance tests, long-run stability, reproducible benchmarks, and profiling-led optimization.
-6. **P4 — Expand systems:** add independently tested cores only after shared interfaces are stable. Console implementations remain separate module repositories, not part of the global host workspace.
-7. **P5 — UI and release:** content library, optional presentation enhancements, legal review, and reproducible packages.
+## Règles du dépôt
 
-See [the detailed roadmap](PeaceEmu/docs/ROADMAP.md) for current estimates, acceptance criteria and remaining work. Progress is measured against checked-in implementation and verified tests—not planned features or directory names.
-
-## Development and legal policy
-
-Development changes belong on the `PeaceEmu` branch; do not commit project changes to `main`. Do not distribute copyrighted game images, BIOS files or firmware without authorization. Third-party dependencies must be reviewed for license compatibility, redistribution terms, security, maintenance and platform support before integration.
+- Les développements se font sur la branche `PeaceEmu`.
+- Les dépôts Dev et Stable restent séparés.
+- Les modules de console restent indépendants de l'interface et du runtime hôte.
+- Les fichiers de jeux, firmwares et BIOS sont des contenus non fiables. Ne distribuez aucun contenu protégé sans autorisation.
+- Vérifiez les licences, la sécurité et les conditions de redistribution avant d'ajouter une dépendance.
