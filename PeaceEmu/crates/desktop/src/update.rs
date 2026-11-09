@@ -386,7 +386,7 @@ fn validate_download_url_for_version(url: &str, version: &str) -> Result<(), Str
             .map(|(_, path)| path)
             .unwrap_or_default();
         let segments: Vec<_> = path.split('/').collect();
-        let expected_tag = format!("v{version}");
+        let expected_tag = format!("v{}", version.replace("-dev", "dev"));
         if segments.get(4).copied() != Some(expected_tag.as_str()) {
             return Err(format!(
                 "Update artifact release tag does not match manifest version {version}."
@@ -403,8 +403,13 @@ pub(crate) fn is_newer_version(candidate: &str, current: &str) -> bool {
     }
 }
 
-fn parse_version(version: &str) -> Option<(u64, u64, u64)> {
-    let mut parts = version.split('.');
+fn parse_version(version: &str) -> Option<(u64, u64, u64, bool)> {
+    // Dev builds use the explicit "-dev" prerelease suffix.
+    let (numeric, is_release) = match version.strip_suffix("-dev") {
+        Some(numeric) => (numeric, false),
+        None => (version, true),
+    };
+    let mut parts = numeric.split('.');
     let parse_component = |part: &str| {
         if part.is_empty()
             || !part.bytes().all(|byte| byte.is_ascii_digit())
@@ -420,7 +425,7 @@ fn parse_version(version: &str) -> Option<(u64, u64, u64)> {
     if parts.next().is_some() {
         return None;
     }
-    Some((major, minor, patch))
+    Some((major, minor, patch, is_release))
 }
 
 fn validate_https_url(url: &str, label: &str) -> Result<(), String> {
@@ -926,6 +931,9 @@ mod tests {
         assert!(is_newer_version("0.10.0", "0.9.9"));
         assert!(is_newer_version("1.0.0", "0.99.99"));
         assert!(!is_newer_version("0.1.0", "0.1.0"));
+        assert!(is_newer_version("0.3.0-dev", "0.2.4"));
+        assert!(is_newer_version("0.3.0", "0.3.0-dev"));
+        assert!(!is_newer_version("0.3.0-dev", "0.3.0"));
         for malformed in [
             "invalid",
             "1..3",
@@ -954,6 +962,7 @@ mod tests {
             sha256: "a".repeat(64),
         };
 
+        assert!(super::parse_version("0.3.0-dev").is_some());
         for malformed in ["", "01.2.3", "1.2", "1.2.3-beta", "1.2.3.4"] {
             assert!(
                 super::download_and_verify(&download, malformed).is_err(),
