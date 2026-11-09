@@ -738,7 +738,7 @@ mod tests {
             Some((0, 3, 1))
         );
         assert_eq!(
-            version_number_with_prefix("gba-module-0.3.1", "nes-module-"),
+            version_number_with_prefix("other-module-0.3.1", "nes-module-"),
             None
         );
     }
