@@ -2599,7 +2599,7 @@ fn import_dialog_text(french: bool) -> ImportDialogText {
             details: "Détails de l’import",
             causes_title: "Causes possibles (non vérifiées)",
             causes: [
-                "Le fichier n’est pas une ROM Game Boy ou Game Boy Color valide.",
+                "Le fichier n’est pas une ROM NES valide.",
                 "Le format du fichier n’est pas pris en charge.",
                 "Le fichier est illisible ou dépasse la taille maximale autorisée.",
             ],
@@ -2612,7 +2612,7 @@ fn import_dialog_text(french: bool) -> ImportDialogText {
             details: "Import details",
             causes_title: "Possible causes (not verified)",
             causes: [
-                "The file is not a valid Game Boy or Game Boy Color ROM.",
+                "The file is not a valid NES ROM.",
                 "The file format is not supported.",
                 "The file is unreadable or exceeds the maximum allowed size.",
             ],
@@ -2853,9 +2853,9 @@ mod import_dialog_tests {
     fn accepts_nes_rom_extension_case_insensitively() {
         assert!(is_supported_rom_extension("nes"));
         assert!(is_supported_rom_extension("NES"));
-        assert!(is_supported_rom_extension("gb"));
-        assert!(is_supported_rom_extension("gbc"));
-        assert!(is_supported_rom_extension("gba"));
+        assert!(!is_supported_rom_extension("gb"));
+        assert!(!is_supported_rom_extension("gbc"));
+        assert!(!is_supported_rom_extension("gba"));
         assert!(!is_supported_rom_extension("zip"));
         assert!(!is_supported_rom_extension(""));
     }
@@ -3025,19 +3025,19 @@ mod preference_tests {
     #[test]
     fn import_summary_reports_hidden_failures_in_both_languages() {
         let failures = vec![
-            "a.gb: invalid header".to_owned(),
-            "b.gb: unsupported format".to_owned(),
-            "c.gb: file too large".to_owned(),
+            "a.nes: invalid header".to_owned(),
+            "b.nes: unsupported format".to_owned(),
+            "c.nes: file too large".to_owned(),
         ];
 
         let english = format_import_summary("en", 1, 5, &failures);
         assert!(english.contains("Imported 1 ROM(s); 5 file(s) skipped or rejected."));
-        assert!(english.contains("a.gb: invalid header"));
+        assert!(english.contains("a.nes: invalid header"));
         assert!(english.contains("and 2 more error(s)"));
 
         let french = format_import_summary("fr", 1, 5, &failures);
         assert!(french.contains("1 ROM(s) importée(s) ; 5 fichier(s) ignoré(s) ou refusé(s)."));
-        assert!(french.contains("a.gb: invalid header"));
+        assert!(french.contains("a.nes: invalid header"));
         assert!(french.contains("et 2 autre(s) erreur(s)"));
     }
 
@@ -3207,20 +3207,20 @@ mod preference_tests {
         let root =
             std::env::temp_dir().join(format!("desktop-prefs-replace-{}", std::process::id()));
         let file = root.join("desktop.conf");
-        write_preferences(&file, true, 1.0, [75, 115, 210], &[PathBuf::from("old.gb")]).unwrap();
+        write_preferences(&file, true, 1.0, [75, 115, 210], &[PathBuf::from("old.nes")]).unwrap();
         write_preferences(
             &file,
             false,
             1.2,
             [75, 115, 210],
-            &[PathBuf::from("new.gb")],
+            &[PathBuf::from("new.nes")],
         )
         .unwrap();
 
         let loaded = load_preferences(&file).unwrap().unwrap();
         assert!(!loaded.dark_mode);
         assert_eq!(loaded.ui_scale, 1.2);
-        assert_eq!(loaded.paths, vec![PathBuf::from("new.gb")]);
+        assert_eq!(loaded.paths, vec![PathBuf::from("new.nes")]);
         assert!(!file.with_extension("conf.tmp").exists());
         assert!(!file.with_extension("conf.bak").exists());
         fs::remove_dir_all(root).unwrap();
