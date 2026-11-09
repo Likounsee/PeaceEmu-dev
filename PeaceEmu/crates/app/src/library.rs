@@ -244,11 +244,7 @@ impl ContentLibrary {
             .extension()
             .and_then(|value| value.to_str())
             .map(str::to_ascii_lowercase);
-        let compatible_system_hint = extension.as_deref().and_then(|extension| match extension {
-            "gb" => Some("Game Boy"),
-            "gbc" => Some("Game Boy / Game Boy Color"),
-            _ => None,
-        });
+        let compatible_system_hint = None;
         let entry = ContentEntry {
             path: canonical.clone(),
             title,
@@ -506,10 +502,7 @@ mod tests {
 
         let entry = library.import(&file.0, 64).unwrap();
         assert_eq!(entry.format_hint(), Some("gbc"));
-        assert_eq!(
-            entry.compatible_system_hint(),
-            Some("Game Boy / Game Boy Color")
-        );
+        assert_eq!(entry.compatible_system_hint(), None);
         assert_eq!(entry.validation(), &ContentValidation::Pending);
         assert_eq!(entry.format_detection(), &ContentFormatDetection::Pending);
     }
