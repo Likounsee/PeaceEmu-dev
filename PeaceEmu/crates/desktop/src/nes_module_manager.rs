@@ -14,6 +14,13 @@ const MAX_RELEASES_BYTES: u64 = 2 * 1024 * 1024;
 const EXE_NAME: &str = "peaceemu-nes-desktop.exe";
 const CHECKSUM_NAME: &str = "peaceemu-nes-desktop.exe.sha256";
 
+#[derive(Clone, Debug)]
+pub(crate) struct InstallProgress {
+    pub(crate) percent: u8,
+    pub(crate) stage: &'static str,
+    pub(crate) detail: String,
+}
+
 #[derive(Deserialize)]
 struct ModuleCatalog {
     schema_version: u32,
@@ -274,7 +281,8 @@ fn persist_checksum(directory: &std::path::Path, expected: &str) -> Result<(), S
 }
 /// Downloads the newest published module release, verifies its SHA-256 sidecar,
 /// and installs it into a version-specific directory without overwriting prior builds.
-pub(crate) fn install_latest() -> Result<PathBuf, String> {
+pub(crate) fn install_latest(mut report: impl FnMut(InstallProgress)) -> Result<PathBuf, String> {
+    report(InstallProgress { percent: 1, stage: "prepare", detail: String::new() });
     let agent: ureq::Agent = ureq::Agent::config_builder()
         .timeout_connect(Some(Duration::from_secs(10)))
         .timeout_recv_body(Some(Duration::from_secs(20)))
@@ -301,6 +309,7 @@ pub(crate) fn install_latest() -> Result<PathBuf, String> {
             module.minimum_peaceemu_version
         ));
     }
+    report(InstallProgress { percent: 4, stage: "catalogue", detail: String::new() });
     let mut response = agent
         .get(&module.release_api)
         .header("User-Agent", "PeaceEmu-module-manager")
@@ -365,14 +374,16 @@ pub(crate) fn install_latest() -> Result<PathBuf, String> {
         return Err("NES release contains invalid or oversized download metadata.".to_owned());
     }
     let exe_bytes = download_asset(
-        &agent,
-        &exe_asset.browser_download_url,
-        module.max_download_bytes,
+        &agent, &exe_asset.browser_download_url, module.max_download_bytes,
+        exe_asset.size, 8, 65, "module", &mut report,
     )?;
     if exe_bytes.len() as u64 != exe_asset.size {
         return Err("NES module download size does not match the release metadata.".to_owned());
     }
-    let checksum_bytes = download_asset(&agent, &checksum_asset.browser_download_url, 1024)?;
+    let checksum_bytes = download_asset(
+        &agent, &checksum_asset.browser_download_url, 1024,
+        checksum_asset.size, 65, 70, "checksum", &mut report,
+    )?;
     let checksum_text = std::str::from_utf8(&checksum_bytes)
         .map_err(|_| "NES release checksum is not valid UTF-8.".to_owned())?;
     let expected = checksum_text
@@ -382,11 +393,13 @@ pub(crate) fn install_latest() -> Result<PathBuf, String> {
     if expected.len() != 64 || !expected.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err("NES release checksum has an invalid SHA-256 digest.".to_owned());
     }
+    report(InstallProgress { percent: 72, stage: "verify", detail: "SHA-256".to_owned() });
     let actual = format!("{:x}", Sha256::digest(&exe_bytes));
     if !actual.eq_ignore_ascii_case(expected) {
         return Err("NES module SHA-256 verification failed; nothing was installed.".to_owned());
     }
 
+    report(InstallProgress { percent: 82, stage: "extract_skipped", detail: "standalone executable".to_owned() });
     let destination = module_root()?.join(&release.tag_name);
     fs::create_dir_all(&destination)
         .map_err(|error| format!("Could not create NES module directory: {error}"))?;
@@ -412,8 +425,18 @@ pub(crate) fn install_latest() -> Result<PathBuf, String> {
             .create_new(true)
             .open(&staging)
             .map_err(|error| format!("Could not stage NES module: {error}"))?;
-        file.write_all(&exe_bytes)
-            .map_err(|error| format!("Could not write NES module: {error}"))?;
+        let mut written = 0usize;
+        for chunk in exe_bytes.chunks(64 * 1024) {
+            file.write_all(chunk)
+                .map_err(|error| format!("Could not write NES module: {error}"))?;
+            written += chunk.len();
+            let percent = 84 + ((written as u64 * 14) / exe_bytes.len() as u64) as u8;
+            report(InstallProgress {
+                percent: percent.min(98),
+                stage: "install",
+                detail: format!("{written} / {} bytes", exe_bytes.len()),
+            });
+        }
         file.sync_all()
             .map_err(|error| format!("Could not flush NES module: {error}"))?;
         if final_path.exists() {
@@ -428,7 +451,9 @@ pub(crate) fn install_latest() -> Result<PathBuf, String> {
         let _ = fs::remove_file(&staging);
     }
     let installed = result?;
+    report(InstallProgress { percent: 99, stage: "finalize", detail: String::new() });
     persist_checksum(&destination, expected)?;
+    report(InstallProgress { percent: 100, stage: "done", detail: String::new() });
     Ok(installed)
 }
 
@@ -440,7 +465,16 @@ fn official_release_asset_url(url: &str, repository: &str, tag: &str) -> bool {
         .any(|byte| byte.is_ascii_control() || byte.is_ascii_whitespace() || byte == b'\\')
 }
 
-fn download_asset(agent: &ureq::Agent, url: &str, maximum: u64) -> Result<Vec<u8>, String> {
+fn download_asset(
+    agent: &ureq::Agent,
+    url: &str,
+    maximum: u64,
+    expected_size: u64,
+    progress_start: u8,
+    progress_end: u8,
+    asset_kind: &'static str,
+    report: &mut impl FnMut(InstallProgress),
+) -> Result<Vec<u8>, String> {
     let mut response = agent
         .get(url)
         .call()
@@ -452,27 +486,38 @@ fn download_asset(agent: &ureq::Agent, url: &str, maximum: u64) -> Result<Vec<u8
     {
         return Err("NES module download redirected to an untrusted host.".to_owned());
     }
-    if let Some(length) = response
-        .headers()
-        .get("Content-Length")
-        .and_then(|value| value.to_str().ok())
-    {
-        let length = length
-            .parse::<u64>()
+    if let Some(length) = response.headers().get("Content-Length").and_then(|value| value.to_str().ok()) {
+        let length = length.parse::<u64>()
             .map_err(|_| "NES module has an invalid Content-Length.".to_owned())?;
         if length == 0 || length > maximum {
             return Err("NES module asset exceeds the accepted download size.".to_owned());
         }
     }
-    let mut bytes = Vec::new();
-    response
-        .body_mut()
-        .as_reader()
-        .take(maximum + 1)
-        .read_to_end(&mut bytes)
-        .map_err(|error| format!("Could not read NES module asset: {error}"))?;
-    if bytes.is_empty() || bytes.len() as u64 > maximum {
-        return Err("NES module asset is empty or exceeds the accepted download size.".to_owned());
+    if expected_size == 0 || expected_size > maximum {
+        return Err("NES module asset has an invalid expected size.".to_owned());
+    }
+    let mut bytes = Vec::with_capacity(expected_size.min(maximum) as usize);
+    let mut buffer = [0u8; 64 * 1024];
+    let mut reader = response.body_mut().as_reader();
+    loop {
+        let count = reader.read(&mut buffer)
+            .map_err(|error| format!("Could not read NES module asset: {error}"))?;
+        if count == 0 { break; }
+        bytes.extend_from_slice(&buffer[..count]);
+        let received = bytes.len() as u64;
+        if received > maximum {
+            return Err("NES module asset exceeds the accepted download size.".to_owned());
+        }
+        let span = u64::from(progress_end.saturating_sub(progress_start));
+        let completed = (received.saturating_mul(span) / expected_size).min(span);
+        report(InstallProgress {
+            percent: (u64::from(progress_start) + completed) as u8,
+            stage: "download",
+            detail: format!("{asset_kind}: {received} / {expected_size} bytes"),
+        });
+    }
+    if bytes.is_empty() || bytes.len() as u64 != expected_size {
+        return Err("NES module asset size does not match the release metadata.".to_owned());
     }
     Ok(bytes)
 }
