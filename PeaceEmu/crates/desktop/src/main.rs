@@ -296,6 +296,8 @@ struct DesktopApp {
     registry: CoreRegistry,
     probe: NesCartridgeProbe,
     nes_install_receiver: Option<Receiver<Result<PathBuf, String>>>,
+    nes_install_progress_receiver: Option<Receiver<nes_module_manager::InstallProgress>>,
+    nes_install_progress: Option<nes_module_manager::InstallProgress>,
     nes_installing: bool,
     nes_processes: HashMap<PathBuf, ExternalNesProcess>,
     validated_paths: HashSet<PathBuf>,
@@ -564,6 +566,8 @@ impl DesktopApp {
             registry,
             probe: NesCartridgeProbe,
             nes_install_receiver: None,
+            nes_install_progress_receiver: None,
+            nes_install_progress: None,
             nes_installing: false,
             nes_processes: HashMap::new(),
             validated_paths,
@@ -629,16 +633,26 @@ impl DesktopApp {
         if self.nes_installing {
             return;
         }
-        let (sender, receiver) = mpsc::channel();
-        self.nes_install_receiver = Some(receiver);
+        let (result_sender, result_receiver) = mpsc::channel();
+        let (progress_sender, progress_receiver) = mpsc::channel();
+        self.nes_install_receiver = Some(result_receiver);
+        self.nes_install_progress_receiver = Some(progress_receiver);
+        self.nes_install_progress = Some(nes_module_manager::InstallProgress {
+            percent: 0,
+            stage: "prepare",
+            detail: String::new(),
+        });
         self.nes_installing = true;
         self.message = if self.language == "fr" {
-            "Téléchargement et vérification du module NES en arrière-plan…".to_owned()
+            "Préparation du téléchargement de Nintendo (NES)…".to_owned()
         } else {
-            "Downloading and verifying the NES module in the background…".to_owned()
+            "Preparing the Nintendo (NES) download…".to_owned()
         };
         std::thread::spawn(move || {
-            let _ = sender.send(nes_module_manager::install_latest());
+            let result = nes_module_manager::install_latest(|progress| {
+                let _ = progress_sender.send(progress);
+            });
+            let _ = result_sender.send(result);
         });
     }
 
