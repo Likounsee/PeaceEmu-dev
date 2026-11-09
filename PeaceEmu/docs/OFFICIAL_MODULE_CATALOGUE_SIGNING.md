@@ -25,8 +25,8 @@ A module package is accepted only when all checks pass:
 - The download uses HTTPS and an approved official distribution host.
 - The downloaded byte count and SHA-256 digest match the signed catalogue.
 - Archive paths are checked for traversal, absolute paths, platform-specific path tricks, and duplicate/conflicting entries before extraction.
-- Extraction happens in a private staging directory; activation and installed-state persistence are journaled.
-- Failed pre-activation operations clean up only their own staging files. Failures after activation begins require explicit journal recovery rather than blind deletion.
+- Extraction happens in a private staging directory; final installation and installed-state persistence are journaled.
+- Failures before the final installation commit clean up only their own staging files. An interrupted commit requires explicit journal recovery rather than blind deletion.
 
 ## Runtime isolation
 
