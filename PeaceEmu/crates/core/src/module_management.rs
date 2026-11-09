@@ -532,7 +532,7 @@ mod tests {
     fn validates_module_ids() {
         assert_eq!(ModuleId::new(""), Err(ModuleIdError::Empty));
         assert_eq!(
-            ModuleId::new("Game-Boy"),
+            ModuleId::new("Example-Console"),
             Err(ModuleIdError::InvalidCharacter)
         );
         assert_eq!(ModuleId::new("-gb"), Err(ModuleIdError::InvalidSeparator));
