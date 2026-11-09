@@ -561,8 +561,12 @@ fn download_asset(
         let completed = (received.saturating_mul(span) / expected_size).min(span);
         report(InstallProgress {
             percent: (u64::from(progress_start) + completed) as u8,
-            stage: "download",
-            detail: format!("{asset_kind}: {received} / {expected_size} bytes"),
+            stage: if asset_kind == "checksum" {
+                "download_checksum"
+            } else {
+                "download"
+            },
+            detail: format!("{received} / {expected_size} bytes"),
         });
     }
     if bytes.is_empty() || bytes.len() as u64 != expected_size {
