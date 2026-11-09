@@ -121,9 +121,6 @@ impl ModuleManagerState {
                 FirstLaunchStatus::Completed => "completed",
             }
         );
-        for id in self.selected_modules() {
-            output.push_str(&format!("selected\t{}\n", id.as_str()));
-        }
         for module in self.installed_modules() {
             output.push_str(&format!("installed\t{}\t", module.id.as_str()));
             for byte in module.version.as_bytes() {
@@ -142,8 +139,6 @@ impl ModuleManagerState {
             return Err(StateFormatError::UnsupportedFormat);
         }
         let mut status = None;
-        let mut selected = Vec::new();
-        let mut selected_ids = HashSet::new();
         let mut installed: Vec<InstalledModule> = Vec::new();
         let mut installed_ids = HashSet::new();
         for line in lines {
@@ -160,13 +155,9 @@ impl ModuleManagerState {
                         _ => return Err(StateFormatError::MalformedRecord),
                     });
                 }
+                // Accept and discard legacy selections from version-1 state files.
                 ["selected", raw_id] if status.is_some() => {
-                    let id =
-                        ModuleId::new(*raw_id).map_err(|_| StateFormatError::InvalidModuleId)?;
-                    if !selected_ids.insert(id.clone()) {
-                        return Err(StateFormatError::DuplicateModule);
-                    }
-                    selected.push(id);
+                    ModuleId::new(*raw_id).map_err(|_| StateFormatError::InvalidModuleId)?;
                 }
                 ["installed", raw_id, raw_version] if status.is_some() => {
                     let id =
@@ -195,7 +186,6 @@ impl ModuleManagerState {
         }
         let status = status.ok_or(StateFormatError::MalformedRecord)?;
         let mut state = ModuleManagerState::new();
-        state.set_selection(selected);
         match status {
             FirstLaunchStatus::NotStarted => {}
             FirstLaunchStatus::Skipped => state.mark_setup_skipped(),
@@ -577,12 +567,8 @@ mod tests {
     }
 
     #[test]
-    fn codec_round_trips_status_selection_and_control_characters_in_version() {
+    fn codec_round_trips_status_and_control_characters_in_version() {
         let mut state = ModuleManagerState::new();
-        state.set_selection([
-            ModuleId::new("game-boy").unwrap(),
-            ModuleId::new("nes").unwrap(),
-        ]);
         state
             .record_installed(ModuleId::new("game-boy").unwrap(), "1.2\t0\nβ")
             .unwrap();
@@ -602,9 +588,23 @@ mod tests {
         );
         assert_eq!(
             ModuleManagerState::decode(
-                "PEACEEMU-MODULE-STATE\t1\nstatus\tnot-started\nselected\tgb\nselected\tgb\n"
+                "PEACEEMU-MODULE-STATE\t1\nstatus\tnot-started\ninstalled\tgb\t31\ninstalled\tgb\t32\n"
             ),
             Err(StateFormatError::DuplicateModule)
+        );
+    }
+
+    #[test]
+    fn codec_ignores_legacy_module_selections() {
+        let decoded = ModuleManagerState::decode(
+            "PEACEEMU-MODULE-STATE\t1\nstatus\tcompleted\nselected\tnes\n"
+        )
+        .unwrap();
+        assert!(decoded.installed_modules().is_empty());
+        assert_eq!(decoded.first_launch_status(), FirstLaunchStatus::Completed);
+        assert_eq!(
+            decoded.encode(),
+            "PEACEEMU-MODULE-STATE\t1\nstatus\tcompleted\n"
         );
     }
 
