@@ -307,21 +307,6 @@ impl DesktopApp {
         let library_items = self.controller.library().len().to_string();
         let open_sessions = self.controller.session_summaries().len().to_string();
         let error_count = self.last_tick_errors.len().to_string();
-        let active_session = self
-            .controller
-            .active_session()
-            .map(|id| id.get().to_string())
-            .unwrap_or_else(|| none_text.to_owned());
-        let config_path = self
-            .config_path
-            .as_deref()
-            .map(|path| path.display().to_string())
-            .unwrap_or_else(|| unavailable_text.to_owned());
-        let staged_path = self
-            .staged_update_path
-            .as_deref()
-            .map(|path| path.display().to_string())
-            .unwrap_or_else(|| none_text.to_owned());
         theme::card(ui, &palette, |ui| {
             ui.set_width(ui.available_width());
             ui.spacing_mut().item_spacing.y = 6.0;
@@ -356,51 +341,8 @@ impl DesktopApp {
             key_value(
                 ui,
                 &palette,
-                self.language_pack.text("ui.settings_page.029"),
-                &active_session,
-                true,
-            );
-            key_value(
-                ui,
-                &palette,
                 self.language_pack.text("ui.settings_page.030"),
                 &error_count,
-                false,
-            );
-            ui.separator();
-            key_value(
-                ui,
-                &palette,
-                self.language_pack.text("ui.settings_page.031"),
-                &config_path,
-                true,
-            );
-            key_value(
-                ui,
-                &palette,
-                self.language_pack.text("ui.settings_page.032"),
-                &self.media_status,
-                false,
-            );
-            key_value(
-                ui,
-                &palette,
-                self.language_pack.text("ui.settings_page.033"),
-                &self.update_status,
-                false,
-            );
-            key_value(
-                ui,
-                &palette,
-                self.language_pack.text("ui.settings_page.034"),
-                &staged_path,
-                true,
-            );
-            key_value(
-                ui,
-                &palette,
-                self.language_pack.text("ui.settings_page.035"),
-                &self.message,
                 false,
             );
             if !self.last_tick_errors.is_empty() {
