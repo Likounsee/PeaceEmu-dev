@@ -224,11 +224,18 @@ mod tests {
     #[test]
     fn installed_versions_are_recorded_and_updated_in_place() {
         let mut state = ModuleManagerState::new();
-        state.record_installed(id("example-console"), "1.0.0").unwrap();
+        state
+            .record_installed(id("example-console"), "1.0.0")
+            .unwrap();
         state.record_installed(id("nes"), "2.1.0").unwrap();
-        state.record_installed(id("example-console"), "1.0.1").unwrap();
+        state
+            .record_installed(id("example-console"), "1.0.1")
+            .unwrap();
 
-        assert_eq!(state.installed_version(&id("example-console")), Some("1.0.1"));
+        assert_eq!(
+            state.installed_version(&id("example-console")),
+            Some("1.0.1")
+        );
         assert_eq!(state.installed_version(&id("nes")), Some("2.1.0"));
         assert_eq!(state.installed_modules().len(), 2);
         assert_eq!(state.installed_modules()[0].id, id("example-console"));
@@ -247,7 +254,9 @@ mod tests {
     #[test]
     fn rejected_installed_batch_leaves_existing_state_unchanged() {
         let mut state = ModuleManagerState::new();
-        state.record_installed(id("example-console"), "1.0.0").unwrap();
+        state
+            .record_installed(id("example-console"), "1.0.0")
+            .unwrap();
         let before = state.clone();
 
         assert_eq!(
@@ -272,7 +281,9 @@ mod tests {
     #[test]
     fn installed_batch_updates_existing_versions_and_appends_new_modules_in_order() {
         let mut state = ModuleManagerState::new();
-        state.record_installed(id("example-console"), "1.0.0").unwrap();
+        state
+            .record_installed(id("example-console"), "1.0.0")
+            .unwrap();
         state.record_installed(id("nes"), "2.0.0").unwrap();
 
         state
@@ -289,14 +300,20 @@ mod tests {
                 .iter()
                 .map(|module| (module.id.as_str(), module.version.as_str()))
                 .collect::<Vec<_>>(),
-            vec![("example-console", "1.0.1"), ("nes", "2.1.0"), ("snes", "3.0.0"),]
+            vec![
+                ("example-console", "1.0.1"),
+                ("nes", "2.1.0"),
+                ("snes", "3.0.0"),
+            ]
         );
     }
 
     #[test]
     fn uninstall_batch_removes_only_matching_records_and_returns_count() {
         let mut state = ModuleManagerState::new();
-        state.record_installed(id("example-console"), "1.0.0").unwrap();
+        state
+            .record_installed(id("example-console"), "1.0.0")
+            .unwrap();
         state.record_installed(id("nes"), "2.0.0").unwrap();
         state.record_installed(id("snes"), "3.0.0").unwrap();
 
@@ -318,7 +335,9 @@ mod tests {
     #[test]
     fn uninstall_record_changes_only_after_success_and_is_idempotent() {
         let mut state = ModuleManagerState::new();
-        state.record_installed(id("example-console"), "1.0.0").unwrap();
+        state
+            .record_installed(id("example-console"), "1.0.0")
+            .unwrap();
         state.record_installed(id("nes"), "1.0.0").unwrap();
 
         assert!(state.record_uninstalled(&id("example-console")));
