@@ -7,26 +7,27 @@ use super::*;
 fn render_dev_journal(ui: &mut egui::Ui, palette: &theme::Palette, markdown: &str) {
     for line in markdown.lines() {
         let line = line.trim();
+        let display_line = line.replace("**", "");
         if line.is_empty() {
             ui.add_space(3.0);
         } else if line == "---" {
             ui.separator();
         } else if let Some(heading) = line.strip_prefix("## ") {
             ui.add_space(5.0);
-            ui.label(egui::RichText::new(heading).strong().size(16.0));
+            ui.label(egui::RichText::new(heading.replace("**", "")).strong().size(16.0));
         } else if let Some(heading) = line.strip_prefix("# ") {
-            ui.label(egui::RichText::new(heading).strong().size(19.0));
+            ui.label(egui::RichText::new(heading.replace("**", "")).strong().size(19.0));
         } else if let Some(heading) = line.strip_prefix("### ") {
-            ui.label(egui::RichText::new(heading).strong().size(14.0));
+            ui.label(egui::RichText::new(heading.replace("**", "")).strong().size(14.0));
         } else if let Some(item) = line.strip_prefix("- ") {
             ui.horizontal_wrapped(|ui| {
                 ui.label(egui::RichText::new("•").color(palette.accent));
-                ui.label(egui::RichText::new(item).color(palette.text));
+                ui.label(egui::RichText::new(item.replace("**", "")).color(palette.text));
             });
         } else if line.starts_with("<!--") || line.starts_with("-->") {
             // Ignore Markdown comments.
         } else {
-            ui.label(egui::RichText::new(line).color(palette.text).size(13.0));
+            ui.label(egui::RichText::new(display_line).color(palette.text).size(13.0));
         }
     }
 }
