@@ -127,6 +127,14 @@ fn version_number_with_prefix(tag: &str, prefix: &str) -> Option<(u64, u64, u64)
     Some((major, minor, patch))
 }
 
+fn parse_app_version(version: &str) -> Option<(u64, u64, u64)> {
+    // Cargo package versions may carry a prerelease suffix (for example 0.3.0-dev).
+    // Compare the numeric release components for host compatibility instead of
+    // rejecting every development build as an unparsable version.
+    let release = version.split(['-', '+']).next()?;
+    parse_semver(release)
+}
+
 fn parse_semver(version: &str) -> Option<(u64, u64, u64)> {
     let mut parts = version.split('.');
     let major = parse_version_component(parts.next()?)?;
@@ -170,7 +178,7 @@ pub(crate) fn available_module_ids() -> Vec<String> {
         return Vec::new();
     };
     let platform = current_platform_id();
-    let app_version = parse_semver(env!("CARGO_PKG_VERSION"));
+    let app_version = parse_app_version(env!("CARGO_PKG_VERSION"));
     let minimum_version = parse_semver(&module.minimum_peaceemu_version);
     match (app_version, minimum_version) {
         (Some(app), Some(minimum))
@@ -303,7 +311,7 @@ pub(crate) fn install_latest(mut report: impl FnMut(InstallProgress)) -> Result<
             "The NES module is not available for this platform yet ({platform})."
         ));
     }
-    let app_version = parse_semver(env!("CARGO_PKG_VERSION"))
+    let app_version = parse_app_version(env!("CARGO_PKG_VERSION"))
         .expect("the desktop package version must be valid semantic versioning");
     let minimum_version = parse_semver(&module.minimum_peaceemu_version)
         .expect("the validated catalogue minimum version must be valid");
@@ -624,7 +632,7 @@ mod tests {
     fn catalogue_availability_matches_the_current_host_target() {
         let available = available_module_ids();
         if current_platform_id() == "windows-x86_64"
-            && parse_semver(env!("CARGO_PKG_VERSION")).is_some_and(|version| version >= (0, 2, 3))
+            && parse_app_version(env!("CARGO_PKG_VERSION")).is_some_and(|version| version >= (0, 2, 3))
         {
             assert!(available.iter().any(|id| id == "nes"));
         } else {
@@ -712,6 +720,14 @@ mod tests {
         assert_eq!(parse_semver("0.02.3"), None);
         assert_eq!(parse_semver("0.2"), None);
         assert_eq!(parse_semver("0.2.3-beta"), None);
+    }
+
+    #[test]
+    fn app_version_parser_accepts_development_build_suffixes() {
+        assert_eq!(parse_app_version("0.3.0-dev"), Some((0, 3, 0)));
+        assert_eq!(parse_app_version("0.3.0+local"), Some((0, 3, 0)));
+        assert_eq!(parse_app_version("0.2.3"), Some((0, 2, 3)));
+        assert_eq!(parse_app_version("0.2-dev"), None);
     }
 
     #[test]
