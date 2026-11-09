@@ -1,6 +1,12 @@
 {
   "schema_version": 1,
   "version": "0.3.0-dev",
-  "release_notes_url": "https://github.com/Likounsee/PeaceEmu-dev/releases",
-  "downloads": {}
+  "release_notes_url": "https://github.com/Likounsee/PeaceEmu-dev/releases/tag/v0.3.0dev",
+  "downloads": {
+    "windows-x86_64": {
+      "url": "https://github.com/Likounsee/PeaceEmu-dev/releases/download/v0.3.0dev/PeaceEmu-Dev-Setup-0.3.0-dev.exe",
+      "size_bytes": 17175484,
+      "sha256": "8c2979d3e7349a52278b75bfad2b80169e446f0b886150b613e3dabc0cf4e7a0"
+    }
+  }
 }
