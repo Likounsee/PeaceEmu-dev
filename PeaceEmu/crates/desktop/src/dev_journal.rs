@@ -2,7 +2,7 @@
 
 use sha2::{Digest, Sha256};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 const JOURNAL_URL: &str = "https://raw.githubusercontent.com/Likounsee/PeaceEmu-dev/PeaceEmu/PeaceEmu/dev-actu.md";
 const SHA256_URL: &str = "https://raw.githubusercontent.com/Likounsee/PeaceEmu-dev/PeaceEmu/PeaceEmu/dev-actu.sha256";
@@ -47,18 +47,21 @@ pub(crate) fn refresh() {
             }
         }
 
-        let response = ureq::get(JOURNAL_URL).call()?;
-        let mut bytes = response.into_body().with_config().limit(MAX_JOURNAL_BYTES).read_to_vec()?;
-        if sha256(&bytes) != remote_hash {
+        let contents = ureq::get(JOURNAL_URL)
+            .call()?
+            .body_mut()
+            .read_to_string()?;
+        if contents.len() as u64 > MAX_JOURNAL_BYTES {
+            return Err("downloaded journal exceeds the size limit".into());
+        }
+        if sha256(contents.as_bytes()) != remote_hash {
             return Err("downloaded journal SHA-256 does not match the published hash".into());
         }
-        let contents = std::str::from_utf8(&bytes)?;
         let parent = path.parent().ok_or("journal cache has no parent directory")?;
         fs::create_dir_all(parent)?;
         let temporary = path.with_extension("md.tmp");
         fs::write(&temporary, contents)?;
         fs::rename(&temporary, &path)?;
-        bytes.clear();
         Ok(())
     })();
 
