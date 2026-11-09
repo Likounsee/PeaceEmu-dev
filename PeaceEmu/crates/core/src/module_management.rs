@@ -832,7 +832,15 @@ mod tests {
         let catalog = ModuleCatalog::new(&descriptors);
 
         let plan = catalog
-            .plan_install(&[id("example-console"), id("nes"), id("example-console"), id("nes")], &[])
+            .plan_install(
+                &[
+                    id("example-console"),
+                    id("nes"),
+                    id("example-console"),
+                    id("nes"),
+                ],
+                &[],
+            )
             .unwrap();
 
         assert_eq!(
@@ -848,7 +856,11 @@ mod tests {
 
         let plan = catalog
             .plan_uninstall(
-                &[id("example-console"), id("example-console"), id("shared-runtime")],
+                &[
+                    id("example-console"),
+                    id("example-console"),
+                    id("shared-runtime"),
+                ],
                 &[id("shared-runtime"), id("example-console")],
             )
             .unwrap();
