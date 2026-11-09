@@ -633,7 +633,7 @@ mod tests {
 
     #[test]
     fn module_inventory_deduplicates_built_in_catalogue_and_installed_entries() {
-        let registered = ["game-boy".to_owned(), "nes".to_owned()]
+        let registered = ["sample-console".to_owned(), "nes".to_owned()]
             .into_iter()
             .collect();
         let available = ["nes".to_owned(), "nintendo-switch".to_owned()]
@@ -644,13 +644,12 @@ mod tests {
         let inventory = module_inventory(&registered, &available, &installed);
         assert_eq!(inventory.len(), 3);
         assert!(inventory.contains("nes"));
-        assert!(inventory.contains("game-boy"));
+        assert!(inventory.contains("sample-console"));
         assert!(inventory.contains("nintendo-switch"));
     }
 
     #[test]
     fn module_display_names_are_readable_for_hyphenated_ids() {
-        assert_eq!(module_display_name("game-boy"), "Game Boy");
         assert_eq!(module_display_name("nintendo-switch"), "Nintendo Switch");
     }
 
