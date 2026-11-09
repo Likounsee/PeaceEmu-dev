@@ -71,12 +71,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     #[cfg(windows)]
     {
-        let channel = option_env!("PEACEEMU_CHANNEL").unwrap_or("dev");
-        let app_id = match channel {
-            "stable" => "Likounsee.PeaceEmu.Stable",
-            _ => "Likounsee.PeaceEmu.Dev",
-        };
-        if let Err(error) = windows_app_identity::set_current_process_app_user_model_id(app_id) {
+        if let Err(error) =
+            windows_app_identity::set_current_process_app_user_model_id(peaceemu_app_user_model_id())
+        {
             eprintln!("PeaceEmu: could not set Windows taskbar identity: {error}");
         }
     }
@@ -111,6 +108,14 @@ fn application_icon() -> Result<egui::IconData, image::ImageError> {
         width,
         height,
     })
+}
+
+/// Returns the channel-specific Windows identity shared by PeaceEmu and its child modules.
+fn peaceemu_app_user_model_id() -> &'static str {
+    match option_env!("PEACEEMU_CHANNEL").unwrap_or("dev") {
+        "stable" => "Likounsee.PeaceEmu.Stable",
+        _ => "Likounsee.PeaceEmu.Dev",
+    }
 }
 
 fn parse_cli_arguments(arguments: &[String]) -> Result<Option<&'static str>, String> {
@@ -1015,6 +1020,9 @@ impl DesktopApp {
             if let Ok(host_executable) = std::env::current_exe() {
                 child_command.arg("--host-executable").arg(host_executable);
             }
+            child_command
+                .arg("--app-user-model-id")
+                .arg(peaceemu_app_user_model_id());
             match child_command
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
