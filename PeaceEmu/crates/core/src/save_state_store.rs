@@ -227,7 +227,7 @@ mod tests {
         let Ok(path) = std::env::var("APP_SAVE_CRASH_PATH") else {
             return;
         };
-        let envelope = SaveStateEnvelope::new("game-boy", "0.1.0", vec![9, 8, 7]).unwrap();
+        let envelope = SaveStateEnvelope::new("example-console", "0.1.0", vec![9, 8, 7]).unwrap();
         SaveStateStore::new(path).save(&envelope).unwrap();
         panic!("requested crash checkpoint was not reached");
     }
@@ -242,8 +242,8 @@ mod tests {
             ("primary-installed", true),
         ] {
             let path = temp_path();
-            let original = SaveStateEnvelope::new("game-boy", "0.1.0", vec![1, 2, 3]).unwrap();
-            let replacement = SaveStateEnvelope::new("game-boy", "0.1.0", vec![9, 8, 7]).unwrap();
+            let original = SaveStateEnvelope::new("example-console", "0.1.0", vec![1, 2, 3]).unwrap();
+            let replacement = SaveStateEnvelope::new("example-console", "0.1.0", vec![9, 8, 7]).unwrap();
             SaveStateStore::new(&path).save(&original).unwrap();
 
             let output = Command::new(std::env::current_exe().unwrap())
@@ -292,7 +292,7 @@ mod tests {
     fn store_round_trips_an_envelope() {
         let path = temp_path();
         let store = SaveStateStore::new(&path);
-        let envelope = SaveStateEnvelope::new("game-boy", "0.1.0", vec![1, 2, 3]).unwrap();
+        let envelope = SaveStateEnvelope::new("example-console", "0.1.0", vec![1, 2, 3]).unwrap();
 
         store.save(&envelope).unwrap();
         assert_eq!(store.load().unwrap(), envelope);
@@ -305,8 +305,8 @@ mod tests {
     fn load_recovers_from_backup_when_primary_is_corrupted() {
         let path = temp_path();
         let store = SaveStateStore::new(&path);
-        let original = SaveStateEnvelope::new("game-boy", "0.1.0", vec![1, 2, 3]).unwrap();
-        let replacement = SaveStateEnvelope::new("game-boy", "0.1.0", vec![4, 5, 6]).unwrap();
+        let original = SaveStateEnvelope::new("example-console", "0.1.0", vec![1, 2, 3]).unwrap();
+        let replacement = SaveStateEnvelope::new("example-console", "0.1.0", vec![4, 5, 6]).unwrap();
 
         store.save(&original).unwrap();
         store.save(&replacement).unwrap();
@@ -322,8 +322,8 @@ mod tests {
     fn store_recovers_backup_when_primary_is_missing() {
         let path = temp_path();
         let store = SaveStateStore::new(&path);
-        let original = SaveStateEnvelope::new("game-boy", "0.1.0", vec![1, 2, 3]).unwrap();
-        let replacement = SaveStateEnvelope::new("game-boy", "0.1.0", vec![4, 5, 6]).unwrap();
+        let original = SaveStateEnvelope::new("example-console", "0.1.0", vec![1, 2, 3]).unwrap();
+        let replacement = SaveStateEnvelope::new("example-console", "0.1.0", vec![4, 5, 6]).unwrap();
 
         store.save(&original).unwrap();
         store.save(&replacement).unwrap();
@@ -339,8 +339,8 @@ mod tests {
     fn load_recovers_after_interruption_between_backup_and_primary_install() {
         let path = temp_path();
         let store = SaveStateStore::new(&path);
-        let original = SaveStateEnvelope::new("game-boy", "0.1.0", vec![1, 2, 3]).unwrap();
-        let replacement = SaveStateEnvelope::new("game-boy", "0.1.0", vec![4, 5, 6]).unwrap();
+        let original = SaveStateEnvelope::new("example-console", "0.1.0", vec![1, 2, 3]).unwrap();
+        let replacement = SaveStateEnvelope::new("example-console", "0.1.0", vec![4, 5, 6]).unwrap();
 
         store.save(&original).unwrap();
 
@@ -366,8 +366,8 @@ mod tests {
 
     #[test]
     fn recovery_selects_only_committed_state_at_each_save_checkpoint() {
-        let original = SaveStateEnvelope::new("game-boy", "0.1.0", vec![1, 2, 3]).unwrap();
-        let replacement = SaveStateEnvelope::new("game-boy", "0.1.0", vec![4, 5, 6]).unwrap();
+        let original = SaveStateEnvelope::new("example-console", "0.1.0", vec![1, 2, 3]).unwrap();
+        let replacement = SaveStateEnvelope::new("example-console", "0.1.0", vec![4, 5, 6]).unwrap();
 
         // Model the on-disk layouts observable if the process stops at each
         // durable boundary of save(): before the old primary moves, after it
@@ -428,8 +428,8 @@ mod tests {
     fn load_recovers_from_backup_when_primary_is_oversized() {
         let path = temp_path();
         let store = SaveStateStore::new(&path);
-        let original = SaveStateEnvelope::new("game-boy", "0.1.0", vec![1, 2, 3]).unwrap();
-        let replacement = SaveStateEnvelope::new("game-boy", "0.1.0", vec![4, 5, 6]).unwrap();
+        let original = SaveStateEnvelope::new("example-console", "0.1.0", vec![1, 2, 3]).unwrap();
+        let replacement = SaveStateEnvelope::new("example-console", "0.1.0", vec![4, 5, 6]).unwrap();
 
         store.save(&original).unwrap();
         store.save(&replacement).unwrap();
