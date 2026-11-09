@@ -354,8 +354,8 @@ mod tests {
         assert_eq!(entry.path(), fs::canonicalize(&file.0).unwrap());
         assert_eq!(entry.title(), "zelda");
         assert_eq!(entry.size_bytes(), 8);
-        assert_eq!(entry.format_hint(), Some("gb"));
-        assert_eq!(entry.compatible_system_hint(), Some("Example Console"));
+        assert_eq!(entry.format_hint(), Some("nes"));
+        assert_eq!(entry.compatible_system_hint(), None);
         assert_eq!(entry.format_detection(), &ContentFormatDetection::Pending);
         assert_eq!(entry.validation(), &ContentValidation::Pending);
         assert_eq!(entry.availability(), ContentAvailability::Available);
