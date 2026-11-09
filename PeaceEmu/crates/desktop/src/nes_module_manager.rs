@@ -386,9 +386,11 @@ pub(crate) fn install_latest(mut report: impl FnMut(InstallProgress)) -> Result<
         &exe_asset.browser_download_url,
         module.max_download_bytes,
         exe_asset.size,
-        8,
-        65,
-        "module",
+        DownloadProgress {
+            start: 8,
+            end: 65,
+            stage: "download",
+        },
         &mut report,
     )?;
     if exe_bytes.len() as u64 != exe_asset.size {
@@ -399,9 +401,11 @@ pub(crate) fn install_latest(mut report: impl FnMut(InstallProgress)) -> Result<
         &checksum_asset.browser_download_url,
         1024,
         checksum_asset.size,
-        65,
-        70,
-        "checksum",
+        DownloadProgress {
+            start: 65,
+            end: 70,
+            stage: "download_checksum",
+        },
         &mut report,
     )?;
     let checksum_text = std::str::from_utf8(&checksum_bytes)
@@ -506,14 +510,18 @@ fn official_release_asset_url(url: &str, repository: &str, tag: &str) -> bool {
         .any(|byte| byte.is_ascii_control() || byte.is_ascii_whitespace() || byte == b'\\')
 }
 
+struct DownloadProgress {
+    start: u8,
+    end: u8,
+    stage: &'static str,
+}
+
 fn download_asset(
     agent: &ureq::Agent,
     url: &str,
     maximum: u64,
     expected_size: u64,
-    progress_start: u8,
-    progress_end: u8,
-    asset_kind: &'static str,
+    progress: DownloadProgress,
     report: &mut impl FnMut(InstallProgress),
 ) -> Result<Vec<u8>, String> {
     let mut response = agent
@@ -557,15 +565,11 @@ fn download_asset(
         if received > maximum {
             return Err("NES module asset exceeds the accepted download size.".to_owned());
         }
-        let span = u64::from(progress_end.saturating_sub(progress_start));
+        let span = u64::from(progress.end.saturating_sub(progress.start));
         let completed = (received.saturating_mul(span) / expected_size).min(span);
         report(InstallProgress {
-            percent: (u64::from(progress_start) + completed) as u8,
-            stage: if asset_kind == "checksum" {
-                "download_checksum"
-            } else {
-                "download"
-            },
+            percent: (u64::from(progress.start) + completed) as u8,
+            stage: progress.stage,
             detail: format!("{received} / {expected_size} bytes"),
         });
     }
