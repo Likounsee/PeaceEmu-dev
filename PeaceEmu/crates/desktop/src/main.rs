@@ -33,6 +33,7 @@ mod game_page;
 mod game_saves;
 mod game_view;
 mod home_page;
+mod dev_journal;
 mod key_bindings;
 mod language_pack;
 mod library_page;
@@ -450,6 +451,9 @@ impl DesktopPage {
 
 impl DesktopApp {
     fn new() -> Result<Self, Box<dyn Error>> {
+        if option_env!("PEACEEMU_CHANNEL").unwrap_or("dev") != "stable" {
+            dev_journal::refresh();
+        }
         let registry = CoreRegistry::new();
         let host = HostRuntime::new(HostRuntimeConfig::default())?;
         let mut controller = ApplicationController::new(host);
