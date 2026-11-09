@@ -3170,7 +3170,7 @@ mod preference_tests {
 
     #[test]
     fn config_path_escaping_round_trips_special_characters() {
-        let value = "C:\\Games\\my\nrom\r.gb";
+        let value = "C:\\Games\\my\nrom\r.nes";
         assert_eq!(
             unescape_config_value(&escape_config_value(value)),
             Some(value.to_owned())
@@ -3192,13 +3192,13 @@ mod preference_tests {
             false,
             2.0,
             [75, 115, 210],
-            &[PathBuf::from("sample.gb")],
+            &[PathBuf::from("sample.nes")],
         )
         .unwrap();
         let loaded = load_preferences(&file).unwrap().unwrap();
         assert!(!loaded.dark_mode);
         assert_eq!(loaded.ui_scale, 1.4);
-        assert_eq!(loaded.paths, vec![PathBuf::from("sample.gb")]);
+        assert_eq!(loaded.paths, vec![PathBuf::from("sample.nes")]);
         fs::remove_dir_all(root).unwrap();
     }
 
