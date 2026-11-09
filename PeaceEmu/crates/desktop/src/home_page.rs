@@ -247,7 +247,7 @@ impl DesktopApp {
         let current_version = env!("CARGO_PKG_VERSION");
         let channel = option_env!("PEACEEMU_CHANNEL").unwrap_or("dev");
         let edition = if channel == "stable" {
-            if french { "Stable" } else { "Stable" }
+            "Stable"
         } else if french {
             "Développement"
         } else {
