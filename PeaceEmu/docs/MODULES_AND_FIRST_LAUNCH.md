@@ -40,8 +40,8 @@ Do not deserialize remote manifests directly into trusted executable paths. Vali
 4. Display only modules available for this application version and platform. Show compatibility state, approximate download size and required shared packages when known.
 5. Let the user select multiple modules, skip setup, or choose “configure later”.
 6. Resolve the full dependency plan and show a confirmation summary before downloads.
-7. Download to a temporary staging directory; enforce size limits and timeouts; verify digest and signature; unpack without path traversal; validate package metadata; then atomically activate the package.
-8. Persist the user's selected modules and installed package versions only after each successful activation. Record failures and allow retry without repeating completed work.
+7. Download to a temporary staging directory; enforce size limits and timeouts; verify digest and signature; unpack without path traversal; validate package metadata; then install the package atomically into its final location.
+8. Persist installed package versions only after each successful installation. There is no separate user activation step. Record failures and allow retry without repeating completed work.
 9. Open the main library. Missing, broken or offline modules must not prevent the host from starting.
 
 The setup-complete flag must mean the wizard was deliberately completed or skipped, not that every selected package installed successfully. Failed installs remain visible and retryable.
@@ -52,7 +52,7 @@ Settings exposes the same catalogue and installation planner after first launch.
 
 - Check dependency use before removal; do not remove shared packages while any installed module requires them.
 - Keep package versions and install state in a transactional registry.
-- Stage updates side-by-side and activate them atomically; retain a known-good version for rollback.
+- Stage updates side-by-side and commit the new installation atomically; retain a known-good version for rollback.
 - Never remove saves, game files, user settings or user-supplied firmware when removing a module.
 - A failed download, signature check or extraction must leave the active installation unchanged.
 - Do not automatically elevate privileges or invoke arbitrary shell commands to install dependencies.
@@ -62,7 +62,7 @@ Settings exposes the same catalogue and installation planner after first launch.
 
 A digest detects corruption but does not establish publisher authenticity. Production downloads therefore need a signed catalogue/artifact policy with pinned trusted keys and a documented key-rotation procedure. Enforce HTTPS, archive extraction path checks, package size limits and compatibility checks. Never execute post-install scripts from an unsigned or untrusted package.
 
-The initial module planner is not itself an installer or security boundary. The future downloader/activator must implement these controls and test them on Windows, macOS and Linux.
+The initial module planner is not itself an installer or security boundary. The future downloader/installer must implement these controls and test them on Windows, macOS and Linux.
 
 ## Current truth about supported systems
 
@@ -71,8 +71,8 @@ Console-specific code is developed in separate module repositories and is not bu
 ## Implementation sequence
 
 - **P0:** dependency-aware planner and tests (implemented in core); truthful readiness states; documented trust model.
-- **P0:** persistent first-launch/selection/installed-version state with a versioned format, size limit, validation, staged writes and backup recovery (model and store implemented; per-user path integration remains).\n- **P0:** version compatibility rules and conflict handling during concurrent application updates.
+- **P0:** persistent first-launch/installed-version state with a versioned format, size limit, validation, staged writes and backup recovery (model and store implemented; per-user path integration remains).\n- **P0:** version compatibility rules and conflict handling during concurrent application updates.
 - **P1:** first-launch wizard and settings page, including skip/offline paths.
 - **P1:** signed catalogue format and secure staged installer.
-- **P1/P2:** platform-specific packaging, atomic activation, repair, removal and rollback.
+- **P1/P2:** platform-specific packaging, atomic installation, repair, removal and rollback.
 - **P2:** user-facing compatibility reporting backed by reproducible tests for each console.
