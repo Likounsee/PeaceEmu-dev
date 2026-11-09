@@ -242,8 +242,10 @@ mod tests {
             ("primary-installed", true),
         ] {
             let path = temp_path();
-            let original = SaveStateEnvelope::new("example-console", "0.1.0", vec![1, 2, 3]).unwrap();
-            let replacement = SaveStateEnvelope::new("example-console", "0.1.0", vec![9, 8, 7]).unwrap();
+            let original =
+                SaveStateEnvelope::new("example-console", "0.1.0", vec![1, 2, 3]).unwrap();
+            let replacement =
+                SaveStateEnvelope::new("example-console", "0.1.0", vec![9, 8, 7]).unwrap();
             SaveStateStore::new(&path).save(&original).unwrap();
 
             let output = Command::new(std::env::current_exe().unwrap())
@@ -306,7 +308,8 @@ mod tests {
         let path = temp_path();
         let store = SaveStateStore::new(&path);
         let original = SaveStateEnvelope::new("example-console", "0.1.0", vec![1, 2, 3]).unwrap();
-        let replacement = SaveStateEnvelope::new("example-console", "0.1.0", vec![4, 5, 6]).unwrap();
+        let replacement =
+            SaveStateEnvelope::new("example-console", "0.1.0", vec![4, 5, 6]).unwrap();
 
         store.save(&original).unwrap();
         store.save(&replacement).unwrap();
@@ -323,7 +326,8 @@ mod tests {
         let path = temp_path();
         let store = SaveStateStore::new(&path);
         let original = SaveStateEnvelope::new("example-console", "0.1.0", vec![1, 2, 3]).unwrap();
-        let replacement = SaveStateEnvelope::new("example-console", "0.1.0", vec![4, 5, 6]).unwrap();
+        let replacement =
+            SaveStateEnvelope::new("example-console", "0.1.0", vec![4, 5, 6]).unwrap();
 
         store.save(&original).unwrap();
         store.save(&replacement).unwrap();
@@ -340,7 +344,8 @@ mod tests {
         let path = temp_path();
         let store = SaveStateStore::new(&path);
         let original = SaveStateEnvelope::new("example-console", "0.1.0", vec![1, 2, 3]).unwrap();
-        let replacement = SaveStateEnvelope::new("example-console", "0.1.0", vec![4, 5, 6]).unwrap();
+        let replacement =
+            SaveStateEnvelope::new("example-console", "0.1.0", vec![4, 5, 6]).unwrap();
 
         store.save(&original).unwrap();
 
@@ -367,7 +372,8 @@ mod tests {
     #[test]
     fn recovery_selects_only_committed_state_at_each_save_checkpoint() {
         let original = SaveStateEnvelope::new("example-console", "0.1.0", vec![1, 2, 3]).unwrap();
-        let replacement = SaveStateEnvelope::new("example-console", "0.1.0", vec![4, 5, 6]).unwrap();
+        let replacement =
+            SaveStateEnvelope::new("example-console", "0.1.0", vec![4, 5, 6]).unwrap();
 
         // Model the on-disk layouts observable if the process stops at each
         // durable boundary of save(): before the old primary moves, after it
@@ -429,7 +435,8 @@ mod tests {
         let path = temp_path();
         let store = SaveStateStore::new(&path);
         let original = SaveStateEnvelope::new("example-console", "0.1.0", vec![1, 2, 3]).unwrap();
-        let replacement = SaveStateEnvelope::new("example-console", "0.1.0", vec![4, 5, 6]).unwrap();
+        let replacement =
+            SaveStateEnvelope::new("example-console", "0.1.0", vec![4, 5, 6]).unwrap();
 
         store.save(&original).unwrap();
         store.save(&replacement).unwrap();
