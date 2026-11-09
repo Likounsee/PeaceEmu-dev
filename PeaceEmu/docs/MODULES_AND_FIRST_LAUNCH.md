@@ -38,13 +38,13 @@ Do not deserialize remote manifests directly into trusted executable paths. Vali
 2. If the setup-complete setting is absent, show a welcome screen explaining that console modules are optional.
 3. Fetch and verify the catalogue when online. If unavailable, show a retry option and allow the user to continue with the base application.
 4. Display only modules available for this application version and platform. Show compatibility state, approximate download size and required shared packages when known.
-5. Let the user select multiple modules, skip setup, or choose “configure later”.
-6. Resolve the full dependency plan and show a confirmation summary before downloads.
+5. Let the user install one or more console packages, skip setup, or choose “configure later”.
+6. Resolve the dependencies for the requested packages and show a confirmation summary before downloads.
 7. Download to a temporary staging directory; enforce size limits and timeouts; verify digest and signature; unpack without path traversal; validate package metadata; then install the package atomically into its final location.
 8. Persist installed package versions only after each successful installation. There is no separate user activation step. Record failures and allow retry without repeating completed work.
 9. Open the main library. Missing, broken or offline modules must not prevent the host from starting.
 
-The setup-complete flag must mean the wizard was deliberately completed or skipped, not that every selected package installed successfully. Failed installs remain visible and retryable.
+The setup-complete flag must mean the wizard was deliberately completed or skipped, not that every requested package installed successfully. Failed installs remain visible and retryable.
 
 ## Later module management
 
