@@ -347,7 +347,7 @@ mod tests {
 
     #[test]
     fn import_tracks_canonical_path_title_and_size() {
-        let file = TempFile::new("zelda.gb", b"rom-data");
+        let file = TempFile::new("zelda.nes", b"rom-data");
         let mut library = ContentLibrary::new();
 
         let entry = library.import(&file.0, 64).unwrap();
@@ -355,7 +355,7 @@ mod tests {
         assert_eq!(entry.title(), "zelda");
         assert_eq!(entry.size_bytes(), 8);
         assert_eq!(entry.format_hint(), Some("gb"));
-        assert_eq!(entry.compatible_system_hint(), Some("Game Boy"));
+        assert_eq!(entry.compatible_system_hint(), Some("Example Console"));
         assert_eq!(entry.format_detection(), &ContentFormatDetection::Pending);
         assert_eq!(entry.validation(), &ContentValidation::Pending);
         assert_eq!(entry.availability(), ContentAvailability::Available);
@@ -364,22 +364,22 @@ mod tests {
 
     #[test]
     fn lookup_uses_the_canonical_path_and_returns_none_for_unknown_paths() {
-        let file = TempFile::new("lookup.gb", b"rom-data");
+        let file = TempFile::new("lookup.nes", b"rom-data");
         let mut library = ContentLibrary::new();
         let canonical = library.import(&file.0, 64).unwrap().path().to_path_buf();
 
         assert_eq!(library.get(&canonical).unwrap().title(), "lookup");
         assert!(library
-            .get(canonical.with_file_name("missing.gb"))
+            .get(canonical.with_file_name("missing.nes"))
             .is_none());
         assert_eq!(library.len(), 1);
     }
 
     #[test]
     fn entries_iterate_in_stable_canonical_path_order() {
-        let first = TempFile::new("zeta.gb", b"z");
-        let second = TempFile::new("alpha.gb", b"a");
-        let third = TempFile::new("middle.gb", b"m");
+        let first = TempFile::new("zeta.nes", b"z");
+        let second = TempFile::new("alpha.nes", b"a");
+        let third = TempFile::new("middle.nes", b"m");
         let mut library = ContentLibrary::new();
 
         library.import(&first.0, 64).unwrap();
@@ -403,8 +403,8 @@ mod tests {
 
     #[test]
     fn import_rejects_duplicates_empty_files_and_oversized_files() {
-        let file = TempFile::new("game.gb", b"1234");
-        let empty = TempFile::new("empty.gb", b"");
+        let file = TempFile::new("game.nes", b"1234");
+        let empty = TempFile::new("empty.nes", b"");
         let mut library = ContentLibrary::new();
 
         library.import(&file.0, 4).unwrap();
@@ -429,7 +429,7 @@ mod tests {
             std::process::id(),
             NEXT_TEMP_ID.fetch_add(1, Ordering::Relaxed)
         ));
-        let missing = root.join("missing.gb");
+        let missing = root.join("missing.nes");
         let mut library = ContentLibrary::new();
 
         assert!(matches!(
@@ -442,7 +442,7 @@ mod tests {
 
     #[test]
     fn validation_updates_only_existing_canonical_entries() {
-        let file = TempFile::new("validation.gb", b"rom-data");
+        let file = TempFile::new("validation.nes", b"rom-data");
         let mut library = ContentLibrary::new();
         let canonical = library.import(&file.0, 64).unwrap().path().to_path_buf();
 
@@ -452,7 +452,7 @@ mod tests {
             &ContentValidation::Accepted
         );
 
-        let missing = canonical.with_file_name("not-imported.gb");
+        let missing = canonical.with_file_name("not-imported.nes");
         assert!(
             !library.record_validation(&missing, ContentValidation::Rejected("invalid".to_owned()))
         );
@@ -465,7 +465,7 @@ mod tests {
 
     #[test]
     fn import_accepts_a_file_exactly_at_the_size_limit() {
-        let file = TempFile::new("limit.gb", b"12345678");
+        let file = TempFile::new("limit.nes", b"12345678");
         let mut library = ContentLibrary::new();
 
         let entry = library.import(&file.0, 8).unwrap();
@@ -475,21 +475,21 @@ mod tests {
 
     #[test]
     fn format_detection_updates_only_matching_canonical_entries() {
-        let file = TempFile::new("detected.gb", b"rom-data");
+        let file = TempFile::new("detected.nes", b"rom-data");
         let mut library = ContentLibrary::new();
         library.import(&file.0, 64).unwrap();
         let canonical = fs::canonicalize(&file.0).unwrap();
 
         assert!(library.record_format_detection(
             &canonical,
-            ContentFormatDetection::Detected("game-boy".to_owned())
+            ContentFormatDetection::Detected("example-console".to_owned())
         ));
         assert_eq!(
             library.entries().next().unwrap().format_detection(),
-            &ContentFormatDetection::Detected("game-boy".to_owned())
+            &ContentFormatDetection::Detected("example-console".to_owned())
         );
         assert!(!library.record_format_detection(
-            canonical.with_file_name("other.gb"),
+            canonical.with_file_name("other.nes"),
             ContentFormatDetection::NoMatch
         ));
         assert_eq!(library.len(), 1);
@@ -497,7 +497,7 @@ mod tests {
 
     #[test]
     fn extension_hints_are_case_insensitive_and_not_validation() {
-        let file = TempFile::new("UNKNOWN.GBC", b"unverified");
+        let file = TempFile::new("UNKNOWN.NES", b"unverified");
         let mut library = ContentLibrary::new();
 
         let entry = library.import(&file.0, 64).unwrap();
@@ -509,7 +509,7 @@ mod tests {
 
     #[test]
     fn availability_is_rechecked_when_an_imported_file_disappears() {
-        let file = TempFile::new("removed.gb", b"rom-data");
+        let file = TempFile::new("removed.nes", b"rom-data");
         let mut library = ContentLibrary::new();
         library.import(&file.0, 64).unwrap();
         let canonical = fs::canonicalize(&file.0).unwrap();
@@ -527,7 +527,7 @@ mod tests {
 
     #[test]
     fn availability_detects_when_an_imported_file_is_replaced_by_a_directory() {
-        let file = TempFile::new("replaced.gb", b"rom-data");
+        let file = TempFile::new("replaced.nes", b"rom-data");
         let mut library = ContentLibrary::new();
         let canonical = library.import(&file.0, 64).unwrap().path().to_path_buf();
 
@@ -546,7 +546,7 @@ mod tests {
 
     #[test]
     fn validation_outcome_is_recorded_without_claiming_extension_proves_validity() {
-        let file = TempFile::new("bad.gb", b"not a valid cartridge");
+        let file = TempFile::new("bad.nes", b"not a valid cartridge");
         let mut library = ContentLibrary::new();
         library.import(&file.0, 64).unwrap();
         let canonical = fs::canonicalize(&file.0).unwrap();
@@ -560,14 +560,14 @@ mod tests {
             &ContentValidation::Rejected("invalid cartridge header".to_owned())
         );
         assert!(!library.record_validation(
-            PathBuf::from("not-in-library.gb"),
+            PathBuf::from("not-in-library.nes"),
             ContentValidation::Accepted
         ));
     }
 
     #[test]
     fn stale_entry_can_be_removed_after_its_file_disappears() {
-        let file = TempFile::new("stale.gb", b"rom-data");
+        let file = TempFile::new("stale.nes", b"rom-data");
         let mut library = ContentLibrary::new();
         let canonical = library.import(&file.0, 64).unwrap().path().to_path_buf();
 
@@ -584,10 +584,10 @@ mod tests {
 
     #[test]
     fn failed_removal_does_not_mutate_other_entries() {
-        let file = TempFile::new("kept.gb", b"rom-data");
+        let file = TempFile::new("kept.nes", b"rom-data");
         let mut library = ContentLibrary::new();
         let canonical = library.import(&file.0, 64).unwrap().path().to_path_buf();
-        let missing = canonical.with_file_name("missing.gb");
+        let missing = canonical.with_file_name("missing.nes");
 
         assert!(matches!(
             library.remove(&missing),
@@ -599,7 +599,7 @@ mod tests {
 
     #[test]
     fn remove_requires_an_imported_path_and_updates_the_catalog() {
-        let file = TempFile::new("game.gb", b"rom");
+        let file = TempFile::new("game.nes", b"rom");
         let mut library = ContentLibrary::new();
 
         assert!(matches!(
