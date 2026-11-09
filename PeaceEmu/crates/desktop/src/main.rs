@@ -363,19 +363,12 @@ struct DesktopApp {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum LibraryFormat {
     All,
-    GameBoy,
     Nes,
 }
 
-fn visible_library_formats(installed: &BTreeSet<String>) -> Vec<LibraryFormat> {
-    let mut formats = Vec::with_capacity(2);
-    if installed.contains("game-boy") {
-        formats.push(LibraryFormat::GameBoy);
-    }
-    // NES is built into this desktop build and must not disappear when the
-    // optional legacy standalone module package is not installed.
-    formats.push(LibraryFormat::Nes);
-    formats
+fn visible_library_formats(_installed: &BTreeSet<String>) -> Vec<LibraryFormat> {
+    // The host currently exposes only the independently installed NES module.
+    vec![LibraryFormat::Nes]
 }
 
 impl LibraryFormat {
@@ -383,7 +376,6 @@ impl LibraryFormat {
         match (self, french) {
             (Self::All, true) => "Tous les jeux",
             (Self::All, false) => "All games",
-            (Self::GameBoy, _) => "Game Boy (GB / GBC / GBA)",
             (Self::Nes, _) => "Nintendo (NES)",
         }
     }
@@ -391,19 +383,13 @@ impl LibraryFormat {
     fn module_id(self) -> Option<&'static str> {
         match self {
             Self::All => None,
-            Self::GameBoy => Some("game-boy"),
             Self::Nes => Some("nes"),
         }
     }
 
     fn for_path(path: &Path) -> Option<Self> {
         let extension = path.extension()?.to_str()?;
-        if ["gb", "gbc", "gba"]
-            .iter()
-            .any(|item| extension.eq_ignore_ascii_case(item))
-        {
-            Some(Self::GameBoy)
-        } else if extension.eq_ignore_ascii_case("nes") {
+        if extension.eq_ignore_ascii_case("nes") {
             Some(Self::Nes)
         } else {
             None
@@ -417,9 +403,6 @@ impl LibraryFormat {
             .unwrap_or("");
         match self {
             Self::All => true,
-            Self::GameBoy => ["gb", "gbc", "gba"]
-                .iter()
-                .any(|supported| extension.eq_ignore_ascii_case(supported)),
             Self::Nes => extension.eq_ignore_ascii_case("nes"),
         }
     }
@@ -901,7 +884,6 @@ impl DesktopApp {
                 "Import games"
             })
             .add_filter("Nintendo Entertainment System (*.nes)", &["nes"])
-            .add_filter("Game Boy (*.gb, *.gbc, *.gba)", &["gb", "gbc", "gba"])
             .add_filter(
                 if self.language == "fr" {
                     "Tous les fichiers"
@@ -2775,7 +2757,7 @@ fn import_dialog_body(
 
 /// Rejects unsupported extensions and non-ROM bytes before adding a file to the library.
 fn is_supported_rom_extension(extension: &str) -> bool {
-    ["gb", "gbc", "gba", "nes"]
+    ["nes"]
         .iter()
         .any(|supported| extension.eq_ignore_ascii_case(supported))
 }
@@ -2787,7 +2769,7 @@ fn validate_import_file(path: &Path) -> Result<(), String> {
         .and_then(|value| value.to_str())
         .unwrap_or_default();
     if !is_supported_rom_extension(extension) {
-        return Err("unsupported file type: choose a .gb, .gbc, .gba or .nes ROM".to_owned());
+        return Err("unsupported file type: choose a .nes ROM".to_owned());
     }
 
     let metadata = std::fs::metadata(path)
@@ -3156,39 +3138,22 @@ mod preference_tests {
         let nes = ["nes".to_owned()].into_iter().collect();
         assert_eq!(visible_library_formats(&nes), vec![LibraryFormat::Nes]);
 
-        let game_boy = ["game-boy".to_owned()].into_iter().collect();
+        let other_modules = ["another-module".to_owned()].into_iter().collect();
         assert_eq!(
-            visible_library_formats(&game_boy),
-            vec![LibraryFormat::GameBoy, LibraryFormat::Nes]
-        );
-
-        let both = ["game-boy".to_owned(), "nes".to_owned()]
-            .into_iter()
-            .collect();
-        assert_eq!(
-            visible_library_formats(&both),
-            vec![LibraryFormat::GameBoy, LibraryFormat::Nes]
+            visible_library_formats(&other_modules),
+            vec![LibraryFormat::Nes]
         );
     }
 
     #[test]
     fn library_format_filter_is_case_insensitive() {
-        assert!(LibraryFormat::GameBoy.matches(Path::new("Pokemon.GB")));
-        assert!(LibraryFormat::GameBoy.matches(Path::new("Pokemon.GbC")));
-        assert!(LibraryFormat::GameBoy.matches(Path::new("Pokemon.GBA")));
-        assert!(!LibraryFormat::GameBoy.matches(Path::new("Pokemon.zip")));
         assert_eq!(LibraryFormat::Nes.label(true), "Nintendo (NES)");
         assert_eq!(LibraryFormat::Nes.label(false), "Nintendo (NES)");
         assert!(LibraryFormat::Nes.matches(Path::new("Super-Mario.nes")));
         assert!(LibraryFormat::Nes.matches(Path::new("Zelda.NES")));
         assert!(!LibraryFormat::Nes.matches(Path::new("Super-Mario.zip")));
         assert!(LibraryFormat::All.matches(Path::new("archive.zip")));
-        assert_eq!(LibraryFormat::GameBoy.module_id(), Some("game-boy"));
         assert_eq!(LibraryFormat::Nes.module_id(), Some("nes"));
-        assert_eq!(
-            LibraryFormat::for_path(Path::new("pokemon.GBC")),
-            Some(LibraryFormat::GameBoy)
-        );
         assert_eq!(
             LibraryFormat::for_path(Path::new("mario.NES")),
             Some(LibraryFormat::Nes)
