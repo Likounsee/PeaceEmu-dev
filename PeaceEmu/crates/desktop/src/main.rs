@@ -3207,7 +3207,14 @@ mod preference_tests {
         let root =
             std::env::temp_dir().join(format!("desktop-prefs-replace-{}", std::process::id()));
         let file = root.join("desktop.conf");
-        write_preferences(&file, true, 1.0, [75, 115, 210], &[PathBuf::from("old.nes")]).unwrap();
+        write_preferences(
+            &file,
+            true,
+            1.0,
+            [75, 115, 210],
+            &[PathBuf::from("old.nes")],
+        )
+        .unwrap();
         write_preferences(
             &file,
             false,
