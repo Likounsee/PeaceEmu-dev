@@ -500,6 +500,8 @@ impl DesktopApp {
             );
             let mut next_turbo_speed = self.nes_turbo_speed;
             let mut turbo_speed_changed = false;
+            let mut next_mute_audio = self.nes_turbo_mute_audio;
+            let mut mute_audio_changed = false;
             theme::card(ui, &palette, |ui| {
                 ui.set_width(ui.available_width());
                 ui.horizontal(|ui| {
@@ -513,6 +515,10 @@ impl DesktopApp {
                         .show_value(false);
                     turbo_speed_changed = ui.add(slider).changed();
                     ui.label(egui::RichText::new(format!("{:.1}×", next_turbo_speed)).strong());
+                    mute_audio_changed = ui.checkbox(
+                        &mut next_mute_audio,
+                        if french { "Couper le son en turbo" } else { "Mute audio during turbo" },
+                    ).changed();
                 });
                 ui.label(
                     egui::RichText::new(if french {
@@ -526,6 +532,9 @@ impl DesktopApp {
             });
             if turbo_speed_changed {
                 self.set_nes_turbo_speed(next_turbo_speed);
+            }
+            if mute_audio_changed {
+                self.set_nes_turbo_mute_audio(next_mute_audio);
             }
             for (path, process_id, paused) in &external_sessions {
                 let running = process_id.is_some();
