@@ -403,7 +403,7 @@ jobs:
             throw "Release tag v$tagVersion does not match desktop package version $packageVersion."
           }
 
-          $assetName = "PeaceEmu-Setup-$packageVersion.exe"
+          $assetName = "PeaceEmu-Dev-Setup-$packageVersion.exe"
           $assetPath = Join-Path $env:GITHUB_WORKSPACE "dist/$assetName"
           $checksumPath = "$assetPath.sha256"
           if (!(Test-Path $assetPath) -or !(Test-Path $checksumPath)) {
