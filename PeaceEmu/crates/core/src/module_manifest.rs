@@ -731,13 +731,13 @@ mod tests {
     fn validates_manifest_and_filters_by_target_and_app_version() {
         let m = manifest(vec![
             module("shared-runtime", &[]),
-            module("game-boy", &["shared-runtime"]),
+            module("example-console", &["shared-runtime"]),
         ]);
         let selected = m
             .modules_for_target(ReleaseVersion::parse("1.5.0").unwrap(), target())
             .unwrap();
         assert_eq!(selected.len(), 2);
-        assert_eq!(selected[1].id.as_str(), "game-boy");
+        assert_eq!(selected[1].id.as_str(), "example-console");
         assert!(matches!(
             m.modules_for_target(ReleaseVersion::parse("2.0.0").unwrap(), target()),
             Err(ManifestError::IncompatibleApplicationVersion(_))
@@ -800,7 +800,7 @@ mod tests {
 
     #[test]
     fn rejects_invalid_artifacts() {
-        let mut oversized_label = module("game-boy", &[]);
+        let mut oversized_label = module("example-console", &[]);
         oversized_label.artifact.as_mut().unwrap().url =
             format!("https://{}.example.invalid/file.tar", "a".repeat(64));
         assert!(matches!(
@@ -808,7 +808,7 @@ mod tests {
             Err(ManifestError::InvalidArtifact(_))
         ));
 
-        let mut entry = module("game-boy", &[]);
+        let mut entry = module("example-console", &[]);
         entry.artifact.as_mut().unwrap().url = "http://example.invalid/file".into();
         assert!(matches!(
             manifest(vec![entry]).validate(),
@@ -833,7 +833,7 @@ mod tests {
             "https://192.168.1.999/file.tar",
             "https://[not-ipv6]/file.tar",
         ] {
-            let mut entry = module("game-boy", &[]);
+            let mut entry = module("example-console", &[]);
             entry.artifact.as_mut().unwrap().url = url.into();
             assert!(
                 matches!(
@@ -843,13 +843,13 @@ mod tests {
                 "accepted invalid HTTPS authority: {url}"
             );
         }
-        let mut entry = module("game-boy", &[]);
+        let mut entry = module("example-console", &[]);
         entry.artifact.as_mut().unwrap().sha256 = "not-a-hash".into();
         assert!(matches!(
             manifest(vec![entry]).validate(),
             Err(ManifestError::InvalidArtifact(_))
         ));
-        let mut entry = module("game-boy", &[]);
+        let mut entry = module("example-console", &[]);
         entry.artifact = None;
         assert!(matches!(
             manifest(vec![entry]).validate(),
@@ -871,7 +871,7 @@ mod tests {
 
     #[test]
     fn rejects_duplicate_targets_and_artifacts_for_development_modules() {
-        let mut entry = module("game-boy", &[]);
+        let mut entry = module("example-console", &[]);
         entry.targets.push(target());
         assert!(matches!(
             manifest(vec![entry]).validate(),
