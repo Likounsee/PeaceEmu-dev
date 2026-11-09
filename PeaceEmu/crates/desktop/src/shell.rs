@@ -55,38 +55,36 @@ impl DesktopApp {
                         }
                     }
 
-                    ui.with_layout(
-                        egui::Layout::right_to_left(egui::Align::Center),
-                        |ui| {
-                            let channel = option_env!("PEACEEMU_CHANNEL").unwrap_or("dev");
-                            let (edition, edition_color) = if channel == "stable" {
-                                (
-                                    if self.language == "fr" { "STABLE" } else { "STABLE" },
-                                    palette.accent,
-                                )
-                            } else {
-                                (
-                                    if self.language == "fr" { "DÉVELOPPEMENT" } else { "DEVELOPMENT" },
-                                    palette.accent,
-                                )
-                            };
-                            ui.label(
-                                egui::RichText::new(format!("v{}", env!("CARGO_PKG_VERSION")))
-                                    .size(12.0)
-                                    .color(palette.text_dim),
-                            );
-                            theme::badge(ui, edition, edition_color);
-                            if ui
-                                .selectable_label(
-                                    self.active_page == DesktopPage::Settings,
-                                    DesktopPage::Settings.title(&self.language_pack),
-                                )
-                                .clicked()
-                            {
-                                self.navigate_to(DesktopPage::Settings);
-                            }
-                        },
-                    );
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        let channel = option_env!("PEACEEMU_CHANNEL").unwrap_or("dev");
+                        let (edition, edition_color) = if channel == "stable" {
+                            ("STABLE", palette.accent)
+                        } else {
+                            (
+                                if self.language == "fr" {
+                                    "DÉVELOPPEMENT"
+                                } else {
+                                    "DEVELOPMENT"
+                                },
+                                palette.accent,
+                            )
+                        };
+                        ui.label(
+                            egui::RichText::new(format!("v{}", env!("CARGO_PKG_VERSION")))
+                                .size(12.0)
+                                .color(palette.text_dim),
+                        );
+                        theme::badge(ui, edition, edition_color);
+                        if ui
+                            .selectable_label(
+                                self.active_page == DesktopPage::Settings,
+                                DesktopPage::Settings.title(&self.language_pack),
+                            )
+                            .clicked()
+                        {
+                            self.navigate_to(DesktopPage::Settings);
+                        }
+                    });
                 });
             });
     }
