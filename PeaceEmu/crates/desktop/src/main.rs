@@ -2173,6 +2173,9 @@ impl DesktopApp {
                             egui::Key::F8 if pressed && SAVE_STATES_ENABLED => {
                                 quick_load_requested = true
                             }
+                            // Reserve save-state shortcuts even while disabled: they must not
+                            // fall through into user-configurable gameplay bindings.
+                            egui::Key::F5 | egui::Key::F8 => {}
                             egui::Key::F11 if pressed => fullscreen_toggle_requested = true,
                             egui::Key::Tab => turbo_change = Some(pressed),
                             _ => {
@@ -2305,6 +2308,8 @@ impl DesktopApp {
                             egui::Key::F8 if pressed && SAVE_STATES_ENABLED => {
                                 quick_load_requested = true
                             }
+                            // Keep F5/F8 reserved while save states are disabled.
+                            egui::Key::F5 | egui::Key::F8 => {}
                             egui::Key::Tab => turbo_change = Some(pressed),
                             _ => {
                                 if let Some(control) = self.control_for_active_session(key) {
