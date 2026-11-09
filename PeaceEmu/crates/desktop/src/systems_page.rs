@@ -542,7 +542,7 @@ impl DesktopApp {
                             ("Audio", caps.audio_output),
                             (
                                 if french { "États" } else { "Save states" },
-                                caps.save_states,
+                                caps.save_states && SAVE_STATES_ENABLED,
                             ),
                             (
                                 if french { "Sauvegardes" } else { "Saves" },
