@@ -284,7 +284,11 @@ pub(crate) fn write_preferences_with_language_turbo_and_audio(
     options: PreferenceWriteOptions<'_>,
     paths: &[PathBuf],
 ) -> std::io::Result<()> {
-    let PreferenceWriteOptions { language, turbo_speed, turbo_mute_audio } = options;
+    let PreferenceWriteOptions {
+        language,
+        turbo_speed,
+        turbo_mute_audio,
+    } = options;
     let parent = path.parent().ok_or_else(|| {
         std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
