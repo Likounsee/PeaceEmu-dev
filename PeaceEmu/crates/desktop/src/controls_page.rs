@@ -16,7 +16,6 @@ const GROUPS: [(&str, &str, &[usize]); 3] = [
 fn module_display_name(module_id: &str) -> String {
     match module_id {
         "nes" => "Nintendo (NES)".to_owned(),
-        "game-boy" => "Game Boy".to_owned(),
         other => other
             .split(['-', '_'])
             .filter(|part| !part.is_empty())
