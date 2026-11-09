@@ -277,6 +277,24 @@ impl DesktopApp {
             |_| {},
         );
 
+        // Installation outcomes are stored in the app-wide message field. Keep
+        // them visible on the Systems page instead of silently swallowing errors.
+        if !self.message.is_empty() {
+            let is_error = self.message.starts_with("Échec")
+                || self.message.starts_with("Le téléchargement")
+                || self.message.starts_with("Nintendo (NES) module download stopped")
+                || self.message.starts_with("Nintendo (NES) installation failed");
+            theme::card(ui, &palette, |ui| {
+                ui.set_width(ui.available_width());
+                ui.label(
+                    egui::RichText::new(&self.message)
+                        .color(if is_error { palette.danger } else { palette.text })
+                        .strong(),
+                );
+            });
+            ui.add_space(8.0);
+        }
+
         if let Some(progress) = self.nes_install_progress.as_ref() {
             let stage = match (french, progress.stage) {
                 (true, "prepare") => "Préparation",
