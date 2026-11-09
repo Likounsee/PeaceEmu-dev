@@ -268,7 +268,7 @@ mod tests {
     use super::*;
 
     fn sample() -> SaveStateEnvelope {
-        SaveStateEnvelope::new("game-boy", "0.1.0", vec![1, 2, 3, 4]).unwrap()
+        SaveStateEnvelope::new("example-console", "0.1.0", vec![1, 2, 3, 4]).unwrap()
     }
 
     #[test]
@@ -286,7 +286,7 @@ mod tests {
             Err(SaveStateError::IncompatibleSystem)
         );
         assert_eq!(
-            state.validate_for("game-boy", "0.2.0"),
+            state.validate_for("example-console", "0.2.0"),
             Err(SaveStateError::IncompatibleCoreVersion)
         );
     }
@@ -325,7 +325,7 @@ mod tests {
             Err(SaveStateError::InvalidMetadata)
         );
         assert_eq!(
-            SaveStateEnvelope::new("game-boy", "0.1.0", vec![]),
+            SaveStateEnvelope::new("example-console", "0.1.0", vec![]),
             Err(SaveStateError::EmptyPayload)
         );
     }
