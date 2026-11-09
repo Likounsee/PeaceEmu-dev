@@ -290,7 +290,7 @@ impl DesktopApp {
 
             theme::card(ui, &palette, |ui| {
                 ui.set_width(ui.available_width());
-                let journal = dev_journal::read_cached();
+                let journal = super::dev_journal::read_cached();
                 if journal.is_empty() {
                     ui.label(
                         egui::RichText::new(if french {
