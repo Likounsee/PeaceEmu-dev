@@ -210,7 +210,7 @@ mod tests {
     fn accepts_valid_initialize_and_run_frame_messages() {
         let initialize = message(
             WorkerMessageKind::Initialize,
-            br#"{"module_id":"game-boy","app_version":"1.2.3","content_size_bytes":4096,"content_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}"#,
+            br#"{"module_id":"example-console","app_version":"1.2.3","content_size_bytes":4096,"content_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}"#,
         );
         assert!(validate_worker_message(&initialize).is_ok());
         let run = message(
