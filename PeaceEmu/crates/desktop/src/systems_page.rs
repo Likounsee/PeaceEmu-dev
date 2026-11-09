@@ -475,9 +475,8 @@ impl DesktopApp {
                             } else {
                                 "Unavailable"
                             };
-                            let can_install = is_available
-                                && !self.nes_installing
-                                && !self.nes_uninstalling;
+                            let can_install =
+                                is_available && !self.nes_installing && !self.nes_uninstalling;
                             if ui
                                 .add_enabled(can_install, egui::Button::new(label))
                                 .clicked()
