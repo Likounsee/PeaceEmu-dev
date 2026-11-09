@@ -467,7 +467,7 @@ mod tests {
 
     #[test]
     fn module_identifiers_reject_path_traversal() {
-        assert!(valid_module_id("game-boy"));
+        assert!(valid_module_id("example-console"));
         assert!(!valid_module_id("../nes"));
         assert!(!valid_module_id(""));
     }
@@ -480,7 +480,7 @@ mod tests {
         nes.set(4, egui::Key::Q).unwrap();
         nes.save(Some(&config), "nes").unwrap();
         let loaded_nes = KeyBindings::load(Some(&config), "nes");
-        let loaded_gb = KeyBindings::load(Some(&config), "game-boy");
+        let loaded_gb = KeyBindings::load(Some(&config), "example-console");
         assert_eq!(
             loaded_nes.control(egui::Key::Q),
             Some(InputControl::Action1)
