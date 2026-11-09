@@ -829,7 +829,8 @@ mod tests {
         .expect("manifest JSON should parse");
         assert!(unsupported.validate().is_err());
 
-        let valid_url = "https://github.com/Likounsee/PeaceEmu-dev/releases/download/v0.2.0/app.exe";
+        let valid_url =
+            "https://github.com/Likounsee/PeaceEmu-dev/releases/download/v0.2.0/app.exe";
         for (size, digest) in [
             (0, "a".repeat(64)),
             (1, "not-a-sha256-digest".to_owned()),
@@ -874,10 +875,10 @@ mod tests {
             "https://github.com/other/project/releases/download/v0.2.0/app.exe"
         )
         .is_err());
-        assert!(
-            validate_download_url("https://github.com/Likounsee/PeaceEmu-dev/releases/tag/v0.2.0")
-                .is_err()
-        );
+        assert!(validate_download_url(
+            "https://github.com/Likounsee/PeaceEmu-dev/releases/tag/v0.2.0"
+        )
+        .is_err());
         for traversal in [
             "https://github.com/Likounsee/PeaceEmu-dev/releases/download/v0.2.0/../other.exe",
             "https://github.com/Likounsee/PeaceEmu-dev/releases/download/v0.2.0/%2e%2e/other.exe",
