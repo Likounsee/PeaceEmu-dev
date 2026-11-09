@@ -19,7 +19,9 @@ use emulation_core::core_io::{FrameCadence, InputControl, InputEvent};
 use game_view::video_frame_to_image;
 use host_app::controller::{ApplicationController, SessionCommand};
 use host_app::library::ContentValidation;
-use preferences::{config_file_path, load_preferences, write_preferences_with_language_turbo_and_audio};
+use preferences::{
+    config_file_path, load_preferences, write_preferences_with_language_turbo_and_audio,
+};
 
 mod appearance_page;
 mod audio_output;
@@ -1027,7 +1029,10 @@ impl DesktopApp {
                     );
                     if let Some(process) = self.nes_processes.get_mut(&canonical_path) {
                         let _ = process.send(&format!("TURBO_SPEED {:.1}", self.nes_turbo_speed));
-                        let _ = process.send(&format!("TURBO_MUTE_AUDIO {}", if self.nes_turbo_mute_audio { 1 } else { 0 }));
+                        let _ = process.send(&format!(
+                            "TURBO_MUTE_AUDIO {}",
+                            if self.nes_turbo_mute_audio { 1 } else { 0 }
+                        ));
                     }
                     self.controller
                         .library_mut()
@@ -1338,7 +1343,11 @@ impl DesktopApp {
             };
         } else if saved {
             self.message = if self.language == "fr" {
-                if muted { "Le son sera coupé pendant le turbo.".to_owned() } else { "Le son sera accéléré pendant le turbo.".to_owned() }
+                if muted {
+                    "Le son sera coupé pendant le turbo.".to_owned()
+                } else {
+                    "Le son sera accéléré pendant le turbo.".to_owned()
+                }
             } else if muted {
                 "Audio will be muted during turbo.".to_owned()
             } else {
