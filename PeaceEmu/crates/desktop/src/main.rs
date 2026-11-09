@@ -2167,8 +2167,12 @@ impl DesktopApp {
                         match key {
                             egui::Key::F1 if pressed => reset_requested = true,
                             egui::Key::P if pressed => toggle_pause_requested = true,
-                            egui::Key::F5 if pressed && SAVE_STATES_ENABLED => quick_save_requested = true,
-                            egui::Key::F8 if pressed && SAVE_STATES_ENABLED => quick_load_requested = true,
+                            egui::Key::F5 if pressed && SAVE_STATES_ENABLED => {
+                                quick_save_requested = true
+                            },
+                            egui::Key::F8 if pressed && SAVE_STATES_ENABLED => {
+                                quick_load_requested = true
+                            },
                             egui::Key::F11 if pressed => fullscreen_toggle_requested = true,
                             egui::Key::Tab => turbo_change = Some(pressed),
                             _ => {
@@ -2295,8 +2299,12 @@ impl DesktopApp {
                         match key {
                             egui::Key::F1 if pressed => reset_requested = true,
                             egui::Key::P if pressed => toggle_pause_requested = true,
-                            egui::Key::F5 if pressed && SAVE_STATES_ENABLED => quick_save_requested = true,
-                            egui::Key::F8 if pressed && SAVE_STATES_ENABLED => quick_load_requested = true,
+                            egui::Key::F5 if pressed && SAVE_STATES_ENABLED => {
+                                quick_save_requested = true
+                            },
+                            egui::Key::F8 if pressed && SAVE_STATES_ENABLED => {
+                                quick_load_requested = true
+                            },
                             egui::Key::Tab => turbo_change = Some(pressed),
                             _ => {
                                 if let Some(control) = self.control_for_active_session(key) {
