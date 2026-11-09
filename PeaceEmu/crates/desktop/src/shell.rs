@@ -3,7 +3,6 @@
 use super::*;
 use crate::theme::{Icon, Palette};
 
-const RAIL_WIDTH: f32 = 72.0;
 const SIDEBAR_PADDING: f32 = 16.0;
 
 impl DesktopPage {
