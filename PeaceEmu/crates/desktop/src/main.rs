@@ -19,7 +19,7 @@ use emulation_core::core_io::{FrameCadence, InputControl, InputEvent};
 use game_view::video_frame_to_image;
 use host_app::controller::{ApplicationController, SessionCommand};
 use host_app::library::ContentValidation;
-use preferences::{config_file_path, load_preferences, write_preferences_with_language_and_turbo};
+use preferences::{config_file_path, load_preferences, write_preferences_with_language_turbo_and_audio};
 
 mod appearance_page;
 mod audio_output;
@@ -314,6 +314,7 @@ struct DesktopApp {
     game_fullscreen: bool,
     turbo_held: bool,
     nes_turbo_speed: f32,
+    nes_turbo_mute_audio: bool,
     video_size: Option<[u32; 2]>,
     media_status: String,
     audio_output: AudioOutput,
@@ -450,6 +451,7 @@ impl DesktopApp {
         let mut language = preferences::system_language();
         let mut accent_color = theme::DEFAULT_ACCENT;
         let mut nes_turbo_speed = 4.0_f32;
+        let mut nes_turbo_mute_audio = false;
         let mut message = String::from("Ready. Select a content path to import or launch.");
         let mut selected_content = None;
         if let Some(path) = config_path.as_deref() {
@@ -460,6 +462,7 @@ impl DesktopApp {
                     let _legacy_ui_scale = saved.ui_scale;
                     language = saved.language;
                     nes_turbo_speed = saved.turbo_speed.clamp(0.5, 4.0);
+                    nes_turbo_mute_audio = saved.turbo_mute_audio;
                     accent_color = egui::Color32::from_rgb(
                         saved.accent_rgb[0],
                         saved.accent_rgb[1],
@@ -582,6 +585,7 @@ impl DesktopApp {
             game_fullscreen: false,
             turbo_held: false,
             nes_turbo_speed,
+            nes_turbo_mute_audio,
             video_size: None,
             media_status: "No active session.".to_owned(),
             audio_output: AudioOutput::new(),
@@ -1023,6 +1027,7 @@ impl DesktopApp {
                     );
                     if let Some(process) = self.nes_processes.get_mut(&canonical_path) {
                         let _ = process.send(&format!("TURBO_SPEED {:.1}", self.nes_turbo_speed));
+                        let _ = process.send(&format!("TURBO_MUTE_AUDIO {}", if self.nes_turbo_mute_audio { 1 } else { 0 }));
                     }
                     self.controller
                         .library_mut()
@@ -1313,6 +1318,35 @@ impl DesktopApp {
         }
     }
 
+    fn set_nes_turbo_mute_audio(&mut self, muted: bool) {
+        self.nes_turbo_mute_audio = muted;
+        let command = format!("TURBO_MUTE_AUDIO {}", if muted { 1 } else { 0 });
+        let mut first_error = None;
+        for process in self.nes_processes.values_mut() {
+            if process.is_running() {
+                if let Err(error) = process.send(&command) {
+                    first_error.get_or_insert(error);
+                }
+            }
+        }
+        let saved = self.save_preferences();
+        if let Some(error) = first_error {
+            self.message = if self.language == "fr" {
+                format!("Option audio enregistrée, mais un module NES n’a pas reçu le réglage : {error}")
+            } else {
+                format!("Audio option saved, but a NES module did not receive the setting: {error}")
+            };
+        } else if saved {
+            self.message = if self.language == "fr" {
+                if muted { "Le son sera coupé pendant le turbo.".to_owned() } else { "Le son sera accéléré pendant le turbo.".to_owned() }
+            } else if muted {
+                "Audio will be muted during turbo.".to_owned()
+            } else {
+                "Audio will speed up during turbo.".to_owned()
+            };
+        }
+    }
+
     fn save_preferences(&mut self) -> bool {
         let Some(path) = self.config_path.as_deref() else {
             self.message = preferences_unavailable_message(&self.language).to_owned();
@@ -1324,7 +1358,7 @@ impl DesktopApp {
             .entries()
             .map(|entry| entry.path().to_path_buf())
             .collect();
-        if let Err(error) = write_preferences_with_language_and_turbo(
+        if let Err(error) = write_preferences_with_language_turbo_and_audio(
             path,
             self.dark_mode,
             1.0,
@@ -1335,6 +1369,7 @@ impl DesktopApp {
             ],
             &self.language,
             self.nes_turbo_speed,
+            self.nes_turbo_mute_audio,
             &paths,
         ) {
             self.message = if self.language == "fr" {
