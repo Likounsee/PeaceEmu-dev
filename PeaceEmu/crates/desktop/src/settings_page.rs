@@ -301,8 +301,6 @@ impl DesktopApp {
             "Diagnostic",
             self.language_pack.text("ui.settings_page.022"),
         );
-        let none_text = self.language_pack.text("ui.settings_page.023");
-        let unavailable_text = self.language_pack.text("ui.settings_page.024");
         let platform = format!("{} / {}", std::env::consts::OS, std::env::consts::ARCH);
         let library_items = self.controller.library().len().to_string();
         let open_sessions = self.controller.session_summaries().len().to_string();
