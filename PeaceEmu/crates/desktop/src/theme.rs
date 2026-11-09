@@ -384,7 +384,15 @@ pub fn paint_icon(painter: &egui::Painter, center: Pos2, size: f32, icon: Icon, 
     match icon {
         Icon::Home => {
             painter.add(egui::Shape::closed_line(
-                vec![at(-0.9, -0.05), at(0.0, -0.85), at(0.9, -0.05), at(0.72, -0.05), at(0.72, 0.8), at(-0.72, 0.8), at(-0.72, -0.05)],
+                vec![
+                    at(-0.9, -0.05),
+                    at(0.0, -0.85),
+                    at(0.9, -0.05),
+                    at(0.72, -0.05),
+                    at(0.72, 0.8),
+                    at(-0.72, 0.8),
+                    at(-0.72, -0.05),
+                ],
                 stroke,
             ));
             painter.line_segment([at(-0.2, 0.8), at(-0.2, 0.25)], stroke);
@@ -451,12 +459,22 @@ pub fn rail_button(
         ui.painter().rect_filled(
             rect,
             Rounding::same(10.0),
-            if selected { palette.border } else { with_alpha(palette.border, 120) },
+            if selected {
+                palette.border
+            } else {
+                with_alpha(palette.border, 120)
+            },
         );
     }
-    let color = if selected { palette.accent } else { palette.text_dim };
+    let color = if selected {
+        palette.accent
+    } else {
+        palette.text_dim
+    };
     paint_icon(ui.painter(), rect.center(), 19.0, icon, color);
-    response.on_hover_text(tooltip).on_hover_cursor(egui::CursorIcon::PointingHand)
+    response
+        .on_hover_text(tooltip)
+        .on_hover_cursor(egui::CursorIcon::PointingHand)
 }
 
 /// A full-width navigation row with an icon, a label and an optional counter.
