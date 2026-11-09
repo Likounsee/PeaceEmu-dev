@@ -409,6 +409,11 @@ pub(crate) fn install_latest(mut report: impl FnMut(InstallProgress)) -> Result<
             .map_err(|error| format!("Could not verify the installed NES module: {error}"))?;
         if checksum_matches(&existing, expected) {
             persist_checksum(&destination, expected)?;
+            report(InstallProgress {
+                percent: 100,
+                stage: "done",
+                detail: "already installed".to_owned(),
+            });
             return Ok(final_path);
         }
         // The downloaded bytes have already passed the release SHA-256 check.
