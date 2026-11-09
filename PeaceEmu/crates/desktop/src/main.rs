@@ -59,6 +59,8 @@ use emulation_core::CoreRegistry;
 use nes_probe::NesCartridgeProbe;
 
 const MAX_CONTENT_BYTES: usize = 32 * 1024 * 1024;
+// Full-machine snapshots are temporarily disabled; persistent cartridge saves remain enabled.
+const SAVE_STATES_ENABLED: bool = false;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
@@ -1545,6 +1547,7 @@ impl DesktopApp {
     }
 
     fn save_state_action(&mut self, id: SessionId) {
+        if !SAVE_STATES_ENABLED { return; }
         match self.save_state_for_session(id) {
             Ok(_) => {
                 self.message = if self.language == "fr" {
@@ -1579,6 +1582,7 @@ impl DesktopApp {
     }
 
     fn quick_save_state(&mut self, id: SessionId) {
+        if !SAVE_STATES_ENABLED { return; }
         let is_running = self
             .controller
             .session_summary(id)
@@ -1596,6 +1600,7 @@ impl DesktopApp {
     }
 
     fn quick_load_state(&mut self, id: SessionId) {
+        if !SAVE_STATES_ENABLED { return; }
         let is_running = self
             .controller
             .session_summary(id)
@@ -1615,6 +1620,7 @@ impl DesktopApp {
     }
 
     fn load_state_action(&mut self, id: SessionId) {
+        if !SAVE_STATES_ENABLED { return; }
         let path = match self.save_state_path(id) {
             Ok(path) => path,
             Err(error) => {
@@ -1707,22 +1713,6 @@ impl DesktopApp {
             }
         }
 
-        if matches!(action, SessionAction::StopAndSave) {
-            if let Err(error) = self.save_state_for_session(id) {
-                self.message = if self.language == "fr" {
-                    format!(
-                        "Session {} : arrêt annulé car la sauvegarde de l’état a échoué : {error}",
-                        id.get()
-                    )
-                } else {
-                    format!(
-                        "Session {}: stop aborted because saving the state failed: {error}",
-                        id.get()
-                    )
-                };
-                return;
-            }
-        }
         if matches!(action, SessionAction::StopAndSave)
             && self
                 .controller
@@ -2169,8 +2159,8 @@ impl DesktopApp {
                         match key {
                             egui::Key::F1 if pressed => reset_requested = true,
                             egui::Key::P if pressed => toggle_pause_requested = true,
-                            egui::Key::F5 if pressed => quick_save_requested = true,
-                            egui::Key::F8 if pressed => quick_load_requested = true,
+                            egui::Key::F5 if pressed && SAVE_STATES_ENABLED => quick_save_requested = true,
+                            egui::Key::F8 if pressed && SAVE_STATES_ENABLED => quick_load_requested = true,
                             egui::Key::F11 if pressed => fullscreen_toggle_requested = true,
                             egui::Key::Tab => turbo_change = Some(pressed),
                             _ => {
