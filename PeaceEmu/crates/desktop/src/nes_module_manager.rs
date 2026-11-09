@@ -632,7 +632,8 @@ mod tests {
     fn catalogue_availability_matches_the_current_host_target() {
         let available = available_module_ids();
         if current_platform_id() == "windows-x86_64"
-            && parse_app_version(env!("CARGO_PKG_VERSION")).is_some_and(|version| version >= (0, 2, 3))
+            && parse_app_version(env!("CARGO_PKG_VERSION"))
+                .is_some_and(|version| version >= (0, 2, 3))
         {
             assert!(available.iter().any(|id| id == "nes"));
         } else {
