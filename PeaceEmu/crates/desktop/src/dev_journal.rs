@@ -57,9 +57,8 @@ pub(crate) fn refresh() {
             .parent()
             .ok_or("journal cache has no parent directory")?;
         fs::create_dir_all(parent)?;
-        let temporary = path.with_extension("md.tmp");
-        fs::write(&temporary, contents)?;
-        fs::rename(&temporary, &path)?;
+        // Write only after digest verification; unlike rename-over-existing, this works on Windows.
+        fs::write(&path, contents)?;
         Ok(())
     })();
 
