@@ -1023,7 +1023,7 @@ mod tests {
 
     #[test]
     fn library_search_matches_all_terms_across_title_and_path_case_insensitively() {
-        let path = Path::new("C:/Games/Adventure/zelda.gbc");
+        let path = Path::new("C:/Games/Adventure/zelda.nes");
         assert!(super::matches_library_query(
             "The Legend of Zelda",
             path,
@@ -1032,7 +1032,7 @@ mod tests {
         assert!(super::matches_library_query(
             "The Legend of Zelda",
             path,
-            "ADVENTURE gbc"
+            "ADVENTURE nes"
         ));
         assert!(super::matches_library_query(
             "The Legend of Zelda",
