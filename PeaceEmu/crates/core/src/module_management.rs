@@ -508,8 +508,8 @@ mod tests {
                 &[],
             ),
             descriptor(
-                "game-boy",
-                "Game Boy",
+                "example-console",
+                "Example Console",
                 ModuleReadiness::Experimental,
                 &["shared-runtime"],
             ),
@@ -540,7 +540,7 @@ mod tests {
             ModuleId::new("gb--color"),
             Err(ModuleIdError::InvalidSeparator)
         );
-        assert_eq!(id("game-boy").as_str(), "game-boy");
+        assert_eq!(id("example-console").as_str(), "example-console");
     }
 
     #[test]
@@ -548,11 +548,11 @@ mod tests {
         let descriptors = catalogue_descriptors();
         let catalog = ModuleCatalog::new(&descriptors);
         let plan = catalog
-            .plan_install(&[id("game-boy"), id("nes")], &[])
+            .plan_install(&[id("example-console"), id("nes")], &[])
             .unwrap();
         assert_eq!(
             plan.install_order,
-            vec![id("shared-runtime"), id("game-boy"), id("nes")]
+            vec![id("shared-runtime"), id("example-console"), id("nes")]
         );
     }
 
@@ -561,13 +561,13 @@ mod tests {
         let descriptors = catalogue_descriptors();
         let catalog = ModuleCatalog::new(&descriptors);
         let plan = catalog
-            .plan_install(&[id("game-boy")], &[id("game-boy")])
+            .plan_install(&[id("example-console")], &[id("example-console")])
             .unwrap();
         assert_eq!(plan.install_order, vec![id("shared-runtime")]);
         let plan = catalog
-            .plan_install(&[id("game-boy")], &[id("shared-runtime")])
+            .plan_install(&[id("example-console")], &[id("shared-runtime")])
             .unwrap();
-        assert_eq!(plan.install_order, vec![id("game-boy")]);
+        assert_eq!(plan.install_order, vec![id("example-console")]);
     }
 
     #[test]
@@ -597,8 +597,8 @@ mod tests {
                 &[],
             ),
             descriptor(
-                "game-boy",
-                "Game Boy",
+                "example-console",
+                "Example Console",
                 ModuleReadiness::Installable,
                 &["unfinished-runtime"],
             ),
@@ -606,7 +606,7 @@ mod tests {
         let catalog = ModuleCatalog::new(&descriptors);
 
         assert_eq!(
-            catalog.plan_install(&[id("game-boy")], &[]),
+            catalog.plan_install(&[id("example-console")], &[]),
             Err(PlanError::NotInstallable {
                 module: id("unfinished-runtime"),
                 readiness: ModuleReadiness::InDevelopment,
@@ -624,8 +624,8 @@ mod tests {
                 &[],
             ),
             descriptor(
-                "game-boy",
-                "Game Boy",
+                "example-console",
+                "Example Console",
                 ModuleReadiness::Installable,
                 &["unfinished-runtime"],
             ),
@@ -634,8 +634,8 @@ mod tests {
 
         let plan = catalog
             .plan_install(
-                &[id("game-boy")],
-                &[id("unfinished-runtime"), id("game-boy")],
+                &[id("example-console")],
+                &[id("unfinished-runtime"), id("example-console")],
             )
             .unwrap();
 
@@ -654,15 +654,15 @@ mod tests {
         );
 
         let missing = vec![descriptor(
-            "game-boy",
-            "Game Boy",
+            "example-console",
+            "Example Console",
             ModuleReadiness::Installable,
             &["future-system"],
         )];
         assert_eq!(
             ModuleCatalog::new(&missing).validate(),
             Err(CatalogError::MissingDependency {
-                module: id("game-boy"),
+                module: id("example-console"),
                 dependency: id("future-system"),
             })
         );
@@ -821,8 +821,8 @@ mod tests {
             Err(PlanError::UnknownModule(id("future-system")))
         );
         assert_eq!(
-            catalog.plan_uninstall(&[id("game-boy")], &[]),
-            Err(PlanError::NotInstalled(id("game-boy")))
+            catalog.plan_uninstall(&[id("example-console")], &[]),
+            Err(PlanError::NotInstalled(id("example-console")))
         );
     }
 
@@ -832,12 +832,12 @@ mod tests {
         let catalog = ModuleCatalog::new(&descriptors);
 
         let plan = catalog
-            .plan_install(&[id("game-boy"), id("nes"), id("game-boy"), id("nes")], &[])
+            .plan_install(&[id("example-console"), id("nes"), id("example-console"), id("nes")], &[])
             .unwrap();
 
         assert_eq!(
             plan.install_order,
-            vec![id("shared-runtime"), id("game-boy"), id("nes")]
+            vec![id("shared-runtime"), id("example-console"), id("nes")]
         );
     }
 
@@ -848,14 +848,14 @@ mod tests {
 
         let plan = catalog
             .plan_uninstall(
-                &[id("game-boy"), id("game-boy"), id("shared-runtime")],
-                &[id("shared-runtime"), id("game-boy")],
+                &[id("example-console"), id("example-console"), id("shared-runtime")],
+                &[id("shared-runtime"), id("example-console")],
             )
             .unwrap();
 
         assert_eq!(
             plan.removal_order,
-            vec![id("game-boy"), id("shared-runtime")]
+            vec![id("example-console"), id("shared-runtime")]
         );
     }
 
