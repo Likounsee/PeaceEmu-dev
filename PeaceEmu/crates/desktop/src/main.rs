@@ -2304,7 +2304,7 @@ impl DesktopApp {
                             }
                             egui::Key::F8 if pressed && SAVE_STATES_ENABLED => {
                                 quick_load_requested = true
-                            },
+                            }
                             egui::Key::Tab => turbo_change = Some(pressed),
                             _ => {
                                 if let Some(control) = self.control_for_active_session(key) {
