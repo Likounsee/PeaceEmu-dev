@@ -21,6 +21,7 @@ use host_app::controller::{ApplicationController, SessionCommand};
 use host_app::library::ContentValidation;
 use preferences::{
     config_file_path, load_preferences, write_preferences_with_language_turbo_and_audio,
+    PreferenceWriteOptions,
 };
 
 mod appearance_page;
@@ -1376,9 +1377,11 @@ impl DesktopApp {
                 self.accent_color.g(),
                 self.accent_color.b(),
             ],
-            &self.language,
-            self.nes_turbo_speed,
-            self.nes_turbo_mute_audio,
+            PreferenceWriteOptions {
+                language: &self.language,
+                turbo_speed: self.nes_turbo_speed,
+                turbo_mute_audio: self.nes_turbo_mute_audio,
+            },
             &paths,
         ) {
             self.message = if self.language == "fr" {
