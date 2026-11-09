@@ -38,7 +38,6 @@ impl DesktopApp {
             let id = summary.id;
             let state = summary.state;
             let content_loaded = summary.content_loaded;
-            let save_states = summary.save_states;
             let persistent_saves = summary.persistent_saves;
             let video_available = summary.video_available;
             let audio_available = summary.audio_available;
@@ -77,7 +76,7 @@ impl DesktopApp {
                     {
                         self.session_action(id, SessionAction::Resume);
                     }
-                    if content_loaded && save_states {
+                    if content_loaded && SAVE_STATES_ENABLED && summary.save_states {
                         if ui
                             .button(format!(
                                 "{} (F5)",
@@ -96,12 +95,11 @@ impl DesktopApp {
                         {
                             self.load_state_action(id);
                         }
-                        if ui
-                            .button(self.language_pack.text("ui.game_page.009"))
-                            .clicked()
-                        {
-                            self.session_action(id, SessionAction::StopAndSave);
-                        }
+                    }
+                    if content_loaded
+                        && ui.button(if french { "Arrêter et sauvegarder le jeu" } else { "Stop and save game" }).clicked()
+                    {
+                        self.session_action(id, SessionAction::StopAndSave);
                     }
                     if state != SessionState::Empty
                         && ui
