@@ -97,7 +97,13 @@ impl DesktopApp {
                         }
                     }
                     if content_loaded
-                        && ui.button(if french { "Arrêter et sauvegarder le jeu" } else { "Stop and save game" }).clicked()
+                        && ui
+                            .button(if french {
+                                "Arrêter et sauvegarder le jeu"
+                            } else {
+                                "Stop and save game"
+                            })
+                            .clicked()
                     {
                         self.session_action(id, SessionAction::StopAndSave);
                     }
