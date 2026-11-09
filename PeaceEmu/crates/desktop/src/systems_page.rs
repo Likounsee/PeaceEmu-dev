@@ -430,75 +430,72 @@ impl DesktopApp {
                             }
                         });
                     });
-                    ui.with_layout(
-                        egui::Layout::right_to_left(egui::Align::Center),
-                        |ui| {
-                            if id == "nes" {
-                                if is_installed
-                                    && ui
-                                        .add_enabled(
-                                            !self.nes_installing && !self.nes_uninstalling,
-                                            egui::Button::new(if french {
-                                                "Désinstaller"
-                                            } else {
-                                                "Uninstall"
-                                            }),
-                                        )
-                                        .clicked()
-                                {
-                                    self.nes_uninstall_confirm_open = true;
-                                }
-                                let label = if self.nes_installing {
-                                    if french {
-                                        "Installation…"
-                                    } else {
-                                        "Installing…"
-                                    }
-                                } else if self.nes_uninstalling {
-                                    if french {
-                                        "Désinstallation…"
-                                    } else {
-                                        "Uninstalling…"
-                                    }
-                                } else if is_installed {
-                                    if french {
-                                        "Mettre à jour"
-                                    } else {
-                                        "Update"
-                                    }
-                                } else if is_available {
-                                    if french {
-                                        "Installer"
-                                    } else {
-                                        "Install"
-                                    }
-                                } else if french {
-                                    "Non disponible"
-                                } else {
-                                    "Unavailable"
-                                };
-                                let can_install = is_available
-                                    && !self.nes_installing
-                                    && !self.nes_uninstalling;
-                                if ui
-                                    .add_enabled(can_install, egui::Button::new(label))
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if id == "nes" {
+                            if is_installed
+                                && ui
+                                    .add_enabled(
+                                        !self.nes_installing && !self.nes_uninstalling,
+                                        egui::Button::new(if french {
+                                            "Désinstaller"
+                                        } else {
+                                            "Uninstall"
+                                        }),
+                                    )
                                     .clicked()
-                                {
-                                    self.start_nes_module_install();
-                                }
-                            } else if is_bundled {
-                                status_badge(
-                                    ui,
-                                    if french {
-                                        "Prêt à l’emploi"
-                                    } else {
-                                        "Ready to use"
-                                    },
-                                    palette.success,
-                                );
+                            {
+                                self.nes_uninstall_confirm_open = true;
                             }
-                        },
-                    );
+                            let label = if self.nes_installing {
+                                if french {
+                                    "Installation…"
+                                } else {
+                                    "Installing…"
+                                }
+                            } else if self.nes_uninstalling {
+                                if french {
+                                    "Désinstallation…"
+                                } else {
+                                    "Uninstalling…"
+                                }
+                            } else if is_installed {
+                                if french {
+                                    "Mettre à jour"
+                                } else {
+                                    "Update"
+                                }
+                            } else if is_available {
+                                if french {
+                                    "Installer"
+                                } else {
+                                    "Install"
+                                }
+                            } else if french {
+                                "Non disponible"
+                            } else {
+                                "Unavailable"
+                            };
+                            let can_install = is_available
+                                && !self.nes_installing
+                                && !self.nes_uninstalling;
+                            if ui
+                                .add_enabled(can_install, egui::Button::new(label))
+                                .clicked()
+                            {
+                                self.start_nes_module_install();
+                            }
+                        } else if is_bundled {
+                            status_badge(
+                                ui,
+                                if french {
+                                    "Prêt à l’emploi"
+                                } else {
+                                    "Ready to use"
+                                },
+                                palette.success,
+                            );
+                        }
+                    });
                 });
 
                 if let Some(descriptor) = self
