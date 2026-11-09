@@ -27,13 +27,13 @@ use preferences::{
 mod appearance_page;
 mod audio_output;
 mod controls_page;
+mod dev_journal;
 mod game_covers;
 mod game_names;
 mod game_page;
 mod game_saves;
 mod game_view;
 mod home_page;
-mod dev_journal;
 mod key_bindings;
 mod language_pack;
 mod library_page;
