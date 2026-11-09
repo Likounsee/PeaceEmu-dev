@@ -369,12 +369,9 @@ pub fn choice_card(
 /// Outline icons drawn with the painter, so no icon font or image is needed.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Icon {
-    Home,
-    Library,
     Game,
     Systems,
     Settings,
-    Sidebar,
 }
 
 pub fn paint_icon(painter: &egui::Painter, center: Pos2, size: f32, icon: Icon, color: Color32) {
@@ -382,27 +379,6 @@ pub fn paint_icon(painter: &egui::Painter, center: Pos2, size: f32, icon: Icon, 
     let half = size / 2.0;
     let at = |x: f32, y: f32| center + egui::vec2(x * half, y * half);
     match icon {
-        Icon::Home => {
-            painter.add(egui::Shape::closed_line(
-                vec![
-                    at(-0.8, -0.1),
-                    at(0.0, -0.85),
-                    at(0.8, -0.1),
-                    at(0.8, 0.8),
-                    at(-0.8, 0.8),
-                ],
-                stroke,
-            ));
-        }
-        Icon::Library => {
-            for (x, y) in [(-0.9, -0.9), (0.1, -0.9), (-0.9, 0.1), (0.1, 0.1)] {
-                painter.rect_stroke(
-                    Rect::from_min_size(at(x, y), egui::vec2(half * 0.8, half * 0.8)),
-                    Rounding::same(2.0),
-                    stroke,
-                );
-            }
-        }
         Icon::Game => {
             painter.rect_stroke(
                 Rect::from_min_max(at(-1.0, -0.5), at(1.0, 0.5)),
@@ -430,47 +406,7 @@ pub fn paint_icon(painter: &egui::Painter, center: Pos2, size: f32, icon: Icon, 
                 painter.circle_filled(at(knob, y), 2.6, color);
             }
         }
-        Icon::Sidebar => {
-            painter.rect_stroke(
-                Rect::from_min_max(at(-0.9, -0.75), at(0.9, 0.75)),
-                Rounding::same(3.0),
-                stroke,
-            );
-            painter.line_segment([at(-0.3, -0.75), at(-0.3, 0.75)], stroke);
-        }
     }
-}
-
-/// A square icon button for the left rail.
-pub fn rail_button(
-    ui: &mut egui::Ui,
-    palette: &Palette,
-    icon: Icon,
-    selected: bool,
-    tooltip: &str,
-) -> egui::Response {
-    let (rect, response) = ui.allocate_exact_size(egui::vec2(44.0, 44.0), egui::Sense::click());
-    let painter = ui.painter();
-    if selected || response.hovered() {
-        painter.rect_filled(
-            rect,
-            Rounding::same(10.0),
-            if selected {
-                palette.border
-            } else {
-                with_alpha(palette.border, 120)
-            },
-        );
-    }
-    let color = if selected {
-        palette.text
-    } else {
-        palette.text_dim
-    };
-    paint_icon(painter, rect.center(), 20.0, icon, color);
-    response
-        .on_hover_text(tooltip)
-        .on_hover_cursor(egui::CursorIcon::PointingHand)
 }
 
 /// A full-width navigation row with an icon, a label and an optional counter.
@@ -538,26 +474,6 @@ pub fn nav_item(
         );
     }
     response.on_hover_cursor(egui::CursorIcon::PointingHand)
-}
-
-/// Logo shown at the top of the icon rail, decoded once and cached in egui's memory.
-///
-/// `bird.png` is currently very large (about 6 MB); a 256 px copy would keep the
-/// binary and the first frame lighter. Only change the path below to swap it.
-const LOGO_PNG: &[u8] = include_bytes!("../assets/branding/bird.png");
-
-pub fn logo_texture(context: &egui::Context) -> Option<egui::TextureHandle> {
-    let id = egui::Id::new("peaceemu_logo_texture");
-    if let Some(texture) = context.data(|data| data.get_temp::<egui::TextureHandle>(id)) {
-        return Some(texture);
-    }
-    let decoded = image::load_from_memory_with_format(LOGO_PNG, image::ImageFormat::Png).ok()?;
-    let thumbnail = decoded.thumbnail(128, 128).to_rgba8();
-    let size = [thumbnail.width() as usize, thumbnail.height() as usize];
-    let color_image = egui::ColorImage::from_rgba_unmultiplied(size, thumbnail.as_raw());
-    let texture = context.load_texture("peaceemu-logo", color_image, egui::TextureOptions::LINEAR);
-    context.data_mut(|data| data.insert_temp(id, texture.clone()));
-    Some(texture)
 }
 
 /// Flat cover colour derived from a title, so each game keeps a stable tile.
