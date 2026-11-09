@@ -315,7 +315,7 @@ impl DesktopApp {
                         ui.label(egui::RichText::new(format!("{}%", progress.percent)).strong());
                     });
                 });
-                ui.add(egui::ProgressBar::new(progress.percent as f32 / 100.0).show_percentage());
+                ui.add(egui::ProgressBar::new(progress.percent as f32 / 100.0));
                 ui.label(egui::RichText::new(stage).color(palette.text_dim));
                 if !progress.detail.is_empty() {
                     ui.label(
