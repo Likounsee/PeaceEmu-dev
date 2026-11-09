@@ -1547,7 +1547,9 @@ impl DesktopApp {
     }
 
     fn save_state_action(&mut self, id: SessionId) {
-        if !SAVE_STATES_ENABLED { return; }
+        if !SAVE_STATES_ENABLED {
+            return;
+        }
         match self.save_state_for_session(id) {
             Ok(_) => {
                 self.message = if self.language == "fr" {
@@ -1693,8 +1695,8 @@ impl DesktopApp {
                 None
             };
 
-        // A reset requires released inputs. Stop-and-save remains a recovery action if
-        // input release fails, but it must not stop if the snapshot itself cannot be saved.
+        // A reset requires released inputs. Stop-and-save may still flush persistent
+        // cartridge data after an input-release error, but never writes a machine snapshot.
 
         if matches!(action, SessionAction::Reset) {
             if let Some(error) = release_error.as_ref() {
