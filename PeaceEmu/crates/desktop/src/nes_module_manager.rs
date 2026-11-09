@@ -281,9 +281,7 @@ fn persist_checksum(directory: &std::path::Path, expected: &str) -> Result<(), S
 }
 /// Downloads the newest published module release, verifies its SHA-256 sidecar,
 /// and installs it into a version-specific directory without overwriting prior builds.
-pub(crate) fn install_latest(
-    mut report: impl FnMut(InstallProgress),
-) -> Result<PathBuf, String> {
+pub(crate) fn install_latest(mut report: impl FnMut(InstallProgress)) -> Result<PathBuf, String> {
     report(InstallProgress {
         percent: 1,
         stage: "prepare",
