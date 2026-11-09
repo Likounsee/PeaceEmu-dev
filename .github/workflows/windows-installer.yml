@@ -394,7 +394,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           $tagVersion = $env:GITHUB_REF_NAME.Substring(1)
           $branch = "PeaceEmu"
-          $manifestPath = "PeaceEmu/update/stable.json"
+          $manifestPath = "PeaceEmu/update/dev.json"
           $desktopManifest = Get-Content "PeaceEmu/crates/desktop/Cargo.toml" -Raw
           $versionMatch = [regex]::Match($desktopManifest, '(?m)^version\s*=\s*"([^"]+)"')
           if (!$versionMatch.Success) { throw "Could not read desktop package version." }
@@ -438,9 +438,9 @@ jobs:
           $json = $manifest | ConvertTo-Json -Depth 8
           $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json + "`n"))
 
-          # Read the manifest from the stable branch, not from the release tag checkout.
+          # Read the manifest from the Dev branch, not from the release tag checkout.
           $existing = gh api --method GET -f "ref=$branch" "repos/$env:GITHUB_REPOSITORY/contents/$manifestPath"
-          if ($LASTEXITCODE -ne 0) { throw "Could not read stable update manifest from branch $branch." }
+          if ($LASTEXITCODE -ne 0) { throw "Could not read Dev update manifest from branch $branch." }
           $existingObject = $existing | ConvertFrom-Json
           $payload = @{
             message = "chore(release): publish PeaceEmu $packageVersion update manifest"
@@ -452,9 +452,9 @@ jobs:
           Set-Content -Path $payloadPath -Value $payload -Encoding utf8
           try {
             gh api --method PUT "repos/$env:GITHUB_REPOSITORY/contents/$manifestPath" --input $payloadPath | Out-Null
-            if ($LASTEXITCODE -ne 0) { throw "GitHub rejected the stable update manifest commit." }
+            if ($LASTEXITCODE -ne 0) { throw "GitHub rejected the Dev update manifest commit." }
           } finally {
             Remove-Item $payloadPath -Force -ErrorAction SilentlyContinue
           }
-          Write-Host "Published stable update manifest for v$packageVersion ($actualSize bytes, SHA-256 $actualHash)."
+          Write-Host "Published Dev update manifest for v$packageVersion ($actualSize bytes, SHA-256 $actualHash)."
 

@@ -327,58 +327,7 @@ impl DesktopApp {
             });
         }
 
-        let columns = if ui.available_width() < 620.0 { 1 } else { 3 };
-        ui.columns(columns, |cols| {
-            let stats = [
-                (
-                    if french { "DISPONIBLES" } else { "AVAILABLE" },
-                    available_ids.len().to_string(),
-                    if french {
-                        "catalogue compatible + cœurs intégrés"
-                    } else {
-                        "compatible catalogue + built-in cores"
-                    },
-                ),
-                (
-                    if french { "INSTALLÉS" } else { "INSTALLED" },
-                    installed_ids.len().to_string(),
-                    if french {
-                        "prêts à être utilisés"
-                    } else {
-                        "ready to use"
-                    },
-                ),
-                (
-                    if french { "INTÉGRÉS" } else { "BUILT IN" },
-                    registered.len().to_string(),
-                    if french {
-                        "fournis avec l’application"
-                    } else {
-                        "shipped with the app"
-                    },
-                ),
-            ];
-            for (index, (label, value, detail)) in stats.into_iter().enumerate() {
-                theme::card(&mut cols[index % columns], &palette, |ui| {
-                    ui.set_width(ui.available_width());
-                    ui.label(
-                        egui::RichText::new(label)
-                            .size(10.0)
-                            .strong()
-                            .color(palette.text_dim),
-                    );
-                    ui.label(egui::RichText::new(value).size(25.0).strong());
-                    ui.label(
-                        egui::RichText::new(detail)
-                            .size(11.0)
-                            .color(palette.text_dim),
-                    );
-                });
-            }
-        });
-
-        ui.add_space(14.0);
-        ui.label(egui::RichText::new("CONSOLES").strong().size(13.0));
+        ui.label(egui::RichText::new(if french { "MODULES" } else { "MODULES" }).strong().size(13.0));
         ui.separator();
 
         let mut grouped_modules: [Vec<String>; 3] = [Vec::new(), Vec::new(), Vec::new()];
@@ -386,13 +335,17 @@ impl DesktopApp {
             grouped_modules[module_brand_index(&id)].push(id);
         }
 
-        ui.columns(3, |brand_columns| {
-            for (brand_index, brand_name) in ["Nintendo", "Xbox", "PlayStation"].iter().enumerate()
-            {
-                let ui = &mut brand_columns[brand_index];
-                ui.label(egui::RichText::new(*brand_name).strong().size(16.0));
-                ui.separator();
-                if grouped_modules[brand_index].is_empty() {
+        ui.horizontal_wrapped(|ui| {
+            for (index, brand_name) in ["Nintendo", "Xbox", "PlayStation"].iter().enumerate() {
+                ui.selectable_value(&mut self.module_brand_tab, index, *brand_name);
+            }
+        });
+        ui.add_space(8.0);
+        let brand_index = self.module_brand_tab.min(2);
+        let brand_name = ["Nintendo", "Xbox", "PlayStation"][brand_index];
+        ui.label(egui::RichText::new(brand_name).strong().size(16.0));
+        ui.separator();
+        if grouped_modules[brand_index].is_empty() {
                     theme::card(ui, &palette, |ui| {
                         ui.set_width(ui.available_width());
                         ui.label(
@@ -405,7 +358,7 @@ impl DesktopApp {
                         );
                     });
                 }
-                for id in grouped_modules[brand_index].iter().cloned() {
+        for id in grouped_modules[brand_index].iter().cloned() {
                     let Ok(module_id) = ModuleId::new(id.clone()) else {
                         continue;
                     };
@@ -587,9 +540,7 @@ impl DesktopApp {
                             });
                         }
                     });
-                }
-            }
-        });
+        }
 
         let mut confirm_uninstall = false;
         let mut close_confirmation = false;

@@ -307,6 +307,7 @@ struct DesktopApp {
     content_path: String,
     library_filter: String,
     library_format: LibraryFormat,
+    module_brand_tab: usize,
     selected_content: Option<PathBuf>,
     message: String,
     import_warning: Option<String>,
@@ -580,6 +581,7 @@ impl DesktopApp {
                 .unwrap_or_default(),
             library_filter: String::new(),
             library_format: LibraryFormat::All,
+            module_brand_tab: 0,
             selected_content,
             message,
             import_warning: None,
@@ -623,7 +625,7 @@ impl DesktopApp {
             pending_input_releases: Vec::new(),
             modifier_pressed: [false; 4],
         };
-        // Check the official stable manifest without blocking the first window render.
+        // Check the Dev update manifest without blocking the first window render.
         // The user can still trigger another check from Settings after this completes.
         app.start_update_check();
         Ok(app)
@@ -682,9 +684,9 @@ impl DesktopApp {
         let (sender, receiver) = mpsc::channel();
         self.update_check_receiver = Some(receiver);
         self.update_status = if self.language == "fr" {
-            "Vérification de la version stable officielle en arrière-plan…".to_owned()
+            "Vérification de la version Dev en arrière-plan…".to_owned()
         } else {
-            "Checking the official stable version in the background…".to_owned()
+            "Checking the latest Dev version in the background…".to_owned()
         };
         std::thread::spawn(move || {
             let _ = sender.send(update::fetch_manifest());
@@ -1941,20 +1943,20 @@ impl eframe::App for DesktopApp {
                     } else if update::is_newer_version(current, &manifest.version) {
                         if self.language == "fr" {
                             format!(
-                                "La version installée ({current}) est plus récente que la version stable annoncée ({}). Vérifiez le manifeste de mise à jour.",
+                                "La version installée ({current}) est plus récente que la version Dev annoncée ({}). Vérifiez le manifeste de mise à jour.",
                                 manifest.version
                             )
                         } else {
                             format!(
-                                "Installed version ({current}) is newer than the published stable version ({}). Check the update manifest.",
+                                "Installed version ({current}) is newer than the published Dev version ({}). Check the update manifest.",
                                 manifest.version
                             )
                         }
                     } else {
                         if self.language == "fr" {
-                            format!("Vous utilisez la dernière version stable ({}).", current)
+                            format!("Vous utilisez la dernière version Dev ({}).", current)
                         } else {
-                            format!("You are using the latest stable version ({}).", current)
+                            format!("You are using the latest Dev version ({}).", current)
                         }
                     };
                     self.update_manifest = Some(manifest);

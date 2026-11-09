@@ -13,7 +13,7 @@ use std::time::Duration;
 use ureq::ResponseExt;
 
 pub(crate) const MANIFEST_URL: &str =
-    "https://raw.githubusercontent.com/Likounsee/PeaceEmu-dev/PeaceEmu/PeaceEmu/update/stable.json";
+    "https://raw.githubusercontent.com/Likounsee/PeaceEmu-dev/PeaceEmu/PeaceEmu/update/dev.json";
 const MAX_MANIFEST_BYTES: u64 = 1024 * 1024;
 const MAX_DOWNLOAD_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 
@@ -334,7 +334,7 @@ fn validate_download_url(url: &str) -> Result<(), String> {
         if !path.starts_with("/Likounsee/PeaceEmu-dev/releases/download/") {
             return Err("Update artifacts must come from an PeaceEmu GitHub release.".to_owned());
         }
-        // Manifest artifact URLs are stable release-asset paths, not signed
+        // Manifest artifact URLs are immutable release-asset paths, not signed
         // redirect URLs. Reject query/fragment tricks and dot-segments rather
         // than letting URL/server path normalization change the requested asset.
         if path.contains('?') || path.contains('#') {

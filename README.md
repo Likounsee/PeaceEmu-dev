@@ -1,5 +1,7 @@
 # PeaceEmu
 
+Ce dépôt est la **version de développement (Dev)** de PeaceEmu. Il évolue indépendamment du dépôt Stable : ses mises à jour, ses versions et ses tests ne modifient pas la version Stable.
+
 PeaceEmu est un projet d'émulation multi-consoles en Rust. Il repose sur une application de bureau commune et des modules de console distribués séparément.
 
 [Site officiel](https://likounsee.github.io/PeaceEmu/)
