@@ -33,9 +33,7 @@ fn render_dev_journal(ui: &mut egui::Ui, palette: &theme::Palette, markdown: &st
         } else if let Some(item) = line.strip_prefix("- ") {
             ui.horizontal_wrapped(|ui| {
                 ui.label(egui::RichText::new("•").color(palette.accent));
-                ui.label(
-                    egui::RichText::new(item.replace("**", "")).color(palette.text),
-                );
+                ui.label(egui::RichText::new(item.replace("**", "")).color(palette.text));
             });
         } else if line.starts_with("<!--") || line.starts_with("-->") {
             // Ignore Markdown comments.
