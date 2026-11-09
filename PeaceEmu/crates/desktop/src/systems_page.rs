@@ -301,7 +301,14 @@ impl DesktopApp {
             theme::card(ui, &palette, |ui| {
                 ui.set_width(ui.available_width());
                 ui.horizontal(|ui| {
-                    ui.label(egui::RichText::new(if french { "Installation de Nintendo (NES)" } else { "Nintendo (NES) installation" }).strong());
+                    ui.label(
+                        egui::RichText::new(if french {
+                            "Installation de Nintendo (NES)"
+                        } else {
+                            "Nintendo (NES) installation"
+                        })
+                        .strong(),
+                    );
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         ui.label(egui::RichText::new(format!("{}%", progress.percent)).strong());
                     });
@@ -309,7 +316,11 @@ impl DesktopApp {
                 ui.add(egui::ProgressBar::new(progress.percent as f32 / 100.0).show_percentage());
                 ui.label(egui::RichText::new(stage).color(palette.text_dim));
                 if !progress.detail.is_empty() {
-                    ui.label(egui::RichText::new(&progress.detail).size(11.0).color(palette.text_dim));
+                    ui.label(
+                        egui::RichText::new(&progress.detail)
+                            .size(11.0)
+                            .color(palette.text_dim),
+                    );
                 }
             });
         }
@@ -365,7 +376,7 @@ impl DesktopApp {
         });
 
         ui.add_space(14.0);
-        ui.label(egui::RichText::new("MODULES").strong().size(13.0));
+        ui.label(egui::RichText::new("CONSOLES").strong().size(13.0));
         ui.separator();
 
         let mut grouped_modules: [Vec<String>; 3] = [Vec::new(), Vec::new(), Vec::new()];
@@ -374,18 +385,23 @@ impl DesktopApp {
         }
 
         ui.columns(3, |brand_columns| {
-            for (brand_index, brand_name) in ["Nintendo", "Xbox", "PlayStation"].iter().enumerate() {
+            for (brand_index, brand_name) in
+                ["Nintendo", "Xbox", "PlayStation"].iter().enumerate()
+            {
                 let ui = &mut brand_columns[brand_index];
                 ui.label(egui::RichText::new(*brand_name).strong().size(16.0));
                 ui.separator();
                 if grouped_modules[brand_index].is_empty() {
                     theme::card(ui, &palette, |ui| {
                         ui.set_width(ui.available_width());
-                        ui.label(egui::RichText::new(if french {
-                            "Aucune console disponible pour le moment."
-                        } else {
-                            "No console available yet."
-                        }).color(palette.text_dim));
+                        ui.label(
+                            egui::RichText::new(if french {
+                                "Aucune console disponible pour le moment."
+                            } else {
+                                "No console available yet."
+                            })
+                            .color(palette.text_dim),
+                        );
                     });
                 }
                 for id in grouped_modules[brand_index].iter().cloned() {
