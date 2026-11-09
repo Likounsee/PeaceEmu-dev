@@ -369,9 +369,12 @@ pub fn choice_card(
 /// Outline icons drawn with the painter, so no icon font or image is needed.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Icon {
+    Home,
+    Library,
     Game,
     Systems,
     Settings,
+    Sidebar,
 }
 
 pub fn paint_icon(painter: &egui::Painter, center: Pos2, size: f32, icon: Icon, color: Color32) {
@@ -379,6 +382,32 @@ pub fn paint_icon(painter: &egui::Painter, center: Pos2, size: f32, icon: Icon, 
     let half = size / 2.0;
     let at = |x: f32, y: f32| center + egui::vec2(x * half, y * half);
     match icon {
+        Icon::Home => {
+            painter.add(egui::Shape::closed_line(
+                vec![at(-0.9, -0.05), at(0.0, -0.85), at(0.9, -0.05), at(0.72, -0.05), at(0.72, 0.8), at(-0.72, 0.8), at(-0.72, -0.05)],
+                stroke,
+            ));
+            painter.line_segment([at(-0.2, 0.8), at(-0.2, 0.25)], stroke);
+            painter.line_segment([at(0.2, 0.8), at(0.2, 0.25)], stroke);
+        }
+        Icon::Library => {
+            painter.rect_stroke(
+                Rect::from_min_max(at(-0.85, -0.75), at(0.85, 0.75)),
+                Rounding::same(2.0),
+                stroke,
+            );
+            painter.line_segment([at(0.0, -0.75), at(0.0, 0.75)], stroke);
+            painter.line_segment([at(-0.58, -0.35), at(-0.18, -0.35)], stroke);
+            painter.line_segment([at(0.18, -0.35), at(0.58, -0.35)], stroke);
+        }
+        Icon::Sidebar => {
+            painter.rect_stroke(
+                Rect::from_min_max(at(-0.9, -0.7), at(0.9, 0.7)),
+                Rounding::same(2.0),
+                stroke,
+            );
+            painter.line_segment([at(-0.25, -0.7), at(-0.25, 0.7)], stroke);
+        }
         Icon::Game => {
             painter.rect_stroke(
                 Rect::from_min_max(at(-1.0, -0.5), at(1.0, 0.5)),
@@ -407,6 +436,27 @@ pub fn paint_icon(painter: &egui::Painter, center: Pos2, size: f32, icon: Icon, 
             }
         }
     }
+}
+
+/// A compact square navigation button used by the persistent left rail.
+pub fn rail_button(
+    ui: &mut egui::Ui,
+    palette: &Palette,
+    icon: Icon,
+    selected: bool,
+    tooltip: &str,
+) -> egui::Response {
+    let (rect, response) = ui.allocate_exact_size(egui::vec2(44.0, 44.0), egui::Sense::click());
+    if selected || response.hovered() {
+        ui.painter().rect_filled(
+            rect,
+            Rounding::same(10.0),
+            if selected { palette.border } else { with_alpha(palette.border, 120) },
+        );
+    }
+    let color = if selected { palette.accent } else { palette.text_dim };
+    paint_icon(ui.painter(), rect.center(), 19.0, icon, color);
+    response.on_hover_text(tooltip).on_hover_cursor(egui::CursorIcon::PointingHand)
 }
 
 /// A full-width navigation row with an icon, a label and an optional counter.
