@@ -597,7 +597,7 @@ mod tests {
     #[test]
     fn codec_ignores_legacy_module_selections() {
         let decoded = ModuleManagerState::decode(
-            "PEACEEMU-MODULE-STATE\t1\nstatus\tcompleted\nselected\tnes\n"
+            "PEACEEMU-MODULE-STATE\t1\nstatus\tcompleted\nselected\tnes\n",
         )
         .unwrap();
         assert!(decoded.installed_modules().is_empty());
