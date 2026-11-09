@@ -41,7 +41,7 @@ Do not deserialize remote manifests directly into trusted executable paths. Vali
 5. Let the user install one or more console packages, skip setup, or choose “configure later”.
 6. Resolve the dependencies for the requested packages and show a confirmation summary before downloads.
 7. Download to a temporary staging directory; enforce size limits and timeouts; verify digest and signature; unpack without path traversal; validate package metadata; then install the package atomically into its final location.
-8. Persist installed package versions only after each successful installation. There is no separate user activation step. Record failures and allow retry without repeating completed work.
+8. Persist installed package versions only after each successful installation. The package is then available directly in PeaceEmu. Record failures and allow retry without repeating completed work.
 9. Open the main library. Missing, broken or offline modules must not prevent the host from starting.
 
 The setup-complete flag must mean the wizard was deliberately completed or skipped, not that every requested package installed successfully. Failed installs remain visible and retryable.
