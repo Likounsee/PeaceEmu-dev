@@ -282,13 +282,21 @@ impl DesktopApp {
         if !self.message.is_empty() {
             let is_error = self.message.starts_with("Échec")
                 || self.message.starts_with("Le téléchargement")
-                || self.message.starts_with("Nintendo (NES) module download stopped")
-                || self.message.starts_with("Nintendo (NES) installation failed");
+                || self
+                    .message
+                    .starts_with("Nintendo (NES) module download stopped")
+                || self
+                    .message
+                    .starts_with("Nintendo (NES) installation failed");
             theme::card(ui, &palette, |ui| {
                 ui.set_width(ui.available_width());
                 ui.label(
                     egui::RichText::new(&self.message)
-                        .color(if is_error { palette.danger } else { palette.text })
+                        .color(if is_error {
+                            palette.danger
+                        } else {
+                            palette.text
+                        })
                         .strong(),
                 );
             });
