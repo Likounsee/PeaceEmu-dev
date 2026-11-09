@@ -202,7 +202,10 @@ fn draw_nes_controller(
                 .to_pos2()
         })
         .collect();
-    painter.add(egui::Shape::line(cable.clone(), stroke(10.0, rgb(52, 54, 58))));
+    painter.add(egui::Shape::line(
+        cable.clone(),
+        stroke(10.0, rgb(52, 54, 58)),
+    ));
     let lit: Vec<egui::Pos2> = cable
         .iter()
         .map(|point| *point - egui::vec2(2.0 * s, 0.0))
@@ -213,8 +216,16 @@ fn draw_nes_controller(
     // line give the bevel without any bitmap.
     let shell = r(0.5, 0.585, 0.992, 0.79);
     let shell_round = egui::Rounding::same(17.0 * s);
-    painter.rect_filled(shell.translate(egui::vec2(0.0, 5.0 * s)), shell_round, rgb(76, 78, 83));
-    painter.rect_filled(shell.translate(egui::vec2(0.0, 2.5 * s)), shell_round, rgb(151, 153, 159));
+    painter.rect_filled(
+        shell.translate(egui::vec2(0.0, 5.0 * s)),
+        shell_round,
+        rgb(76, 78, 83),
+    );
+    painter.rect_filled(
+        shell.translate(egui::vec2(0.0, 2.5 * s)),
+        shell_round,
+        rgb(151, 153, 159),
+    );
     painter.rect_filled(shell, shell_round, rgb(220, 222, 226));
     painter.rect_stroke(shell, shell_round, stroke(1.5, rgb(250, 250, 251)));
     painter.rect_stroke(
@@ -223,9 +234,15 @@ fn draw_nes_controller(
         stroke(1.0, rgb(187, 189, 194)),
     );
     // Mould line across the top (dark groove + light edge below it).
-    painter.line_segment([p(0.035, 0.235), p(0.965, 0.235)], stroke(1.0, rgb(190, 192, 197)));
     painter.line_segment(
-        [p(0.035, 0.235) + egui::vec2(0.0, 1.3 * s), p(0.965, 0.235) + egui::vec2(0.0, 1.3 * s)],
+        [p(0.035, 0.235), p(0.965, 0.235)],
+        stroke(1.0, rgb(190, 192, 197)),
+    );
+    painter.line_segment(
+        [
+            p(0.035, 0.235) + egui::vec2(0.0, 1.3 * s),
+            p(0.965, 0.235) + egui::vec2(0.0, 1.3 * s),
+        ],
         stroke(1.0, rgb(244, 245, 247)),
     );
     // Cable strain relief.
@@ -323,10 +340,22 @@ fn draw_nes_controller(
     // The four arms, used for both hit-testing and the selection glow.
     let u = unit * 1.02;
     let (arm, len) = (u * 0.39, u * 1.40);
-    let up = egui::Rect::from_min_max(egui::pos2(dc.x - arm, dc.y - len), egui::pos2(dc.x + arm, dc.y - arm));
-    let down = egui::Rect::from_min_max(egui::pos2(dc.x - arm, dc.y + arm), egui::pos2(dc.x + arm, dc.y + len));
-    let left = egui::Rect::from_min_max(egui::pos2(dc.x - len, dc.y - arm), egui::pos2(dc.x - arm, dc.y + arm));
-    let right = egui::Rect::from_min_max(egui::pos2(dc.x + arm, dc.y - arm), egui::pos2(dc.x + len, dc.y + arm));
+    let up = egui::Rect::from_min_max(
+        egui::pos2(dc.x - arm, dc.y - len),
+        egui::pos2(dc.x + arm, dc.y - arm),
+    );
+    let down = egui::Rect::from_min_max(
+        egui::pos2(dc.x - arm, dc.y + arm),
+        egui::pos2(dc.x + arm, dc.y + len),
+    );
+    let left = egui::Rect::from_min_max(
+        egui::pos2(dc.x - len, dc.y - arm),
+        egui::pos2(dc.x - arm, dc.y + arm),
+    );
+    let right = egui::Rect::from_min_max(
+        egui::pos2(dc.x + arm, dc.y - arm),
+        egui::pos2(dc.x + len, dc.y + arm),
+    );
     for dir in [
         egui::vec2(0.0, -1.0),
         egui::vec2(0.0, 1.0),
@@ -355,8 +384,20 @@ fn draw_nes_controller(
     painter.circle_stroke(dc, unit * 0.22, stroke(1.0, rgb(165, 168, 174)));
 
     // ------------------------------------------------------- SELECT / START
-    bold_text(&painter, p(0.405, 0.648), "SELECT", rect.height() * 0.056, NES_RED);
-    bold_text(&painter, p(0.535, 0.648), "START", rect.height() * 0.056, NES_RED);
+    bold_text(
+        &painter,
+        p(0.405, 0.648),
+        "SELECT",
+        rect.height() * 0.056,
+        NES_RED,
+    );
+    bold_text(
+        &painter,
+        p(0.535, 0.648),
+        "START",
+        rect.height() * 0.056,
+        NES_RED,
+    );
     plate(
         &painter,
         r(0.465, 0.79, 0.275, 0.195),
@@ -388,7 +429,13 @@ fn draw_nes_controller(
         );
     }
 
-    bold_text(&painter, p(0.765, 0.50), "Nintendo®", rect.height() * 0.083, NES_RED);
+    bold_text(
+        &painter,
+        p(0.765, 0.50),
+        "Nintendo®",
+        rect.height() * 0.083,
+        NES_RED,
+    );
 
     // ---------------------------------------------------------------- B / A
     let b = p(0.700, 0.785);
@@ -411,9 +458,17 @@ fn draw_nes_controller(
             rgb(112, 114, 119),
         );
         // Dark rubber shadow, then a domed cap built from stacked highlights.
-        painter.circle_filled(center + egui::vec2(0.0, 3.0 * s), radius * 1.05, rgb(83, 10, 18));
+        painter.circle_filled(
+            center + egui::vec2(0.0, 3.0 * s),
+            radius * 1.05,
+            rgb(83, 10, 18),
+        );
         painter.circle_filled(center, radius * 0.99, rgb(139, 17, 29));
-        painter.circle_filled(center - egui::vec2(0.0, radius * 0.07), radius * 0.91, rgb(190, 27, 39));
+        painter.circle_filled(
+            center - egui::vec2(0.0, radius * 0.07),
+            radius * 0.91,
+            rgb(190, 27, 39),
+        );
         painter.circle_filled(
             center - egui::vec2(radius * 0.20, radius * 0.30),
             radius * 0.58,
@@ -427,8 +482,20 @@ fn draw_nes_controller(
         painter.circle_stroke(center, radius * 0.98, stroke(1.2, rgb(116, 12, 23)));
     }
     // Legends sit fully inside the face plate (they used to straddle its edge).
-    bold_text(&painter, p(0.700, 0.912), "B", rect.height() * 0.058, NES_RED);
-    bold_text(&painter, p(0.830, 0.912), "A", rect.height() * 0.058, NES_RED);
+    bold_text(
+        &painter,
+        p(0.700, 0.912),
+        "B",
+        rect.height() * 0.058,
+        NES_RED,
+    );
+    bold_text(
+        &painter,
+        p(0.830, 0.912),
+        "A",
+        rect.height() * 0.058,
+        NES_RED,
+    );
 
     // ----------------------------------------------------------- interaction
     // (action index, hit area, glow shape). Indexes follow `key_bindings::ACTIONS`.
@@ -437,8 +504,16 @@ fn draw_nes_controller(
         (1, down.expand(2.0 * s), Glow::Rect(down, 3.0 * s)),
         (2, left.expand(2.0 * s), Glow::Rect(left, 3.0 * s)),
         (3, right.expand(2.0 * s), Glow::Rect(right, 3.0 * s)),
-        (9, select.expand2(egui::vec2(4.0 * s, 6.0 * s)), Glow::Rect(select, 11.0 * s)),
-        (8, start.expand2(egui::vec2(4.0 * s, 6.0 * s)), Glow::Rect(start, 11.0 * s)),
+        (
+            9,
+            select.expand2(egui::vec2(4.0 * s, 6.0 * s)),
+            Glow::Rect(select, 11.0 * s),
+        ),
+        (
+            8,
+            start.expand2(egui::vec2(4.0 * s, 6.0 * s)),
+            Glow::Rect(start, 11.0 * s),
+        ),
         (
             5,
             egui::Rect::from_center_size(b, egui::vec2(radius * 2.4, radius * 2.4)),
@@ -482,9 +557,10 @@ fn draw_nes_controller(
     } else {
         1.0
     };
-    let selected_fill = palette
-        .accent
-        .linear_multiply(if capturing { 0.16 + 0.26 * wave } else { 0.32 });
+    let selected_fill =
+        palette
+            .accent
+            .linear_multiply(if capturing { 0.16 + 0.26 * wave } else { 0.32 });
     let selected_stroke = stroke(
         2.5,
         palette
@@ -495,7 +571,11 @@ fn draw_nes_controller(
         if *index == selected_action {
             glow.paint(&painter, selected_fill, selected_stroke);
         } else if hovered == Some(*index) {
-            glow.paint(&painter, palette.accent.linear_multiply(0.14), stroke(1.5, palette.accent.linear_multiply(0.6)));
+            glow.paint(
+                &painter,
+                palette.accent.linear_multiply(0.14),
+                stroke(1.5, palette.accent.linear_multiply(0.6)),
+            );
         }
     }
 
@@ -516,7 +596,13 @@ fn draw_nes_controller(
             font.clone(),
             egui::Color32::from_rgba_unmultiplied(70, 0, 8, 170),
         );
-        painter.text(at, egui::Align2::CENTER_CENTER, &text, font, egui::Color32::WHITE);
+        painter.text(
+            at,
+            egui::Align2::CENTER_CENTER,
+            &text,
+            font,
+            egui::Color32::WHITE,
+        );
     }
     for (index, button) in [(9usize, select), (8, start)] {
         let text = key_label(index);
