@@ -661,6 +661,15 @@ mod tests {
     }
 
     #[test]
+    fn consoles_are_grouped_by_manufacturer() {
+        assert_eq!(module_brand_index("nes"), 0);
+        assert_eq!(module_brand_index("nintendo-switch"), 0);
+        assert_eq!(module_brand_index("xbox-series-x"), 1);
+        assert_eq!(module_brand_index("playstation-5"), 2);
+        assert_eq!(module_brand_index("ps2"), 2);
+    }
+
+    #[test]
     fn installed_path_version_uses_the_release_version_not_the_tag_prefix() {
         assert_eq!(
             version_from_installed_path(std::path::Path::new(
