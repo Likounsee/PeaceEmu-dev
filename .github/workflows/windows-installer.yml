@@ -392,15 +392,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $ErrorActionPreference = "Stop"
-          $tagVersion = $env:GITHUB_REF_NAME.Substring(1)
+          $releaseTag = $env:GITHUB_REF_NAME
           $branch = "PeaceEmu"
           $manifestPath = "PeaceEmu/update/dev.json"
           $desktopManifest = Get-Content "PeaceEmu/crates/desktop/Cargo.toml" -Raw
           $versionMatch = [regex]::Match($desktopManifest, '(?m)^version\s*=\s*"([^"]+)"')
           if (!$versionMatch.Success) { throw "Could not read desktop package version." }
           $packageVersion = $versionMatch.Groups[1].Value
-          if ($tagVersion -ne $packageVersion) {
-            throw "Release tag v$tagVersion does not match desktop package version $packageVersion."
+          # The public Dev release tag intentionally omits the separator:
+          # package 0.3.0-dev is published as v0.3.0dev.
+          $expectedTag = "v" + $packageVersion.Replace("-dev", "dev")
+          if ($releaseTag -ne $expectedTag) {
+            throw "Release tag $releaseTag is invalid; expected $expectedTag for desktop package version $packageVersion."
           }
 
           $assetName = "PeaceEmu-Dev-Setup-$packageVersion.exe"
