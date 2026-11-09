@@ -465,11 +465,11 @@ impl DesktopApp {
             let (heading, hint) = match (total == 0, french) {
                 (true, true) => (
                     "Votre bibliothèque est vide",
-                    "Importez des jeux Game Boy (.gb), Game Boy Color (.gbc) ou Game Boy Advance (.gba) pour constituer votre collection.",
+                    "Importez des jeux NES (.nes) pour constituer votre collection.",
                 ),
                 (true, false) => (
                     "Your library is empty",
-                    "Import Game Boy (.gb), Game Boy Color (.gbc), or Game Boy Advance (.gba) games to build your collection.",
+                    "Import NES (.nes) games to build your collection.",
                 ),
                 (false, true) => (
                     "Aucun jeu ne correspond",
