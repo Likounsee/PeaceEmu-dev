@@ -71,9 +71,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     #[cfg(windows)]
     {
-        if let Err(error) =
-            windows_app_identity::set_current_process_app_user_model_id(peaceemu_app_user_model_id())
-        {
+        if let Err(error) = windows_app_identity::set_current_process_app_user_model_id(
+            peaceemu_app_user_model_id(),
+        ) {
             eprintln!("PeaceEmu: could not set Windows taskbar identity: {error}");
         }
     }
