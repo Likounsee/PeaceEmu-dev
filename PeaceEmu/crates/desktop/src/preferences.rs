@@ -256,7 +256,14 @@ pub(crate) fn write_preferences_with_language_and_turbo(
     paths: &[PathBuf],
 ) -> std::io::Result<()> {
     write_preferences_with_language_turbo_and_audio(
-        path, dark_mode, ui_scale, accent_rgb, language, turbo_speed, false, paths,
+        path,
+        dark_mode,
+        ui_scale,
+        accent_rgb,
+        language,
+        turbo_speed,
+        false,
+        paths,
     )
 }
 
