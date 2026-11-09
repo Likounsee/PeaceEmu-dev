@@ -1,4 +1,4 @@
-#define AppName "PeaceEmu"
+#define AppName "PeaceEmu Dev"
 #ifndef AppVersion
   #define AppVersion "0.1.0"
 #endif
@@ -17,14 +17,14 @@
 ; Select the installer's UI language from Windows first, falling back to the
 ; language selector only when the operating-system language is unavailable.
 LanguageDetectionMethod=uilanguage
-AppId={{D9DDF20D-9F91-4D31-A7C0-8E0F4C1E32D7}
+AppId={{B2C8A6D1-7F40-4B93-9E12-6D4A0C8F2B71}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
-DefaultDirName={autopf}\PeaceEmu
-DefaultGroupName=PeaceEmu
+DefaultDirName={autopf}\PeaceEmu-Dev
+DefaultGroupName=PeaceEmu Dev
 DisableProgramGroupPage=yes
-OutputBaseFilename=PeaceEmu-Setup-{#AppVersion}
+OutputBaseFilename=PeaceEmu-Dev-Setup-{#AppVersion}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -55,8 +55,8 @@ Source: "{#IconFile}"; DestDir: "{app}"; DestName: "PeaceEmu.ico"; Flags: ignore
 Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist; Excludes: "{#AppExeName},*.pdb,*.ilk"
 
 [Icons]
-Name: "{group}\PeaceEmu"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app}\PeaceEmu.ico"
-Name: "{autodesktop}\PeaceEmu"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app}\PeaceEmu.ico"; Tasks: desktopicon
+Name: "{group}\PeaceEmu Dev"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app}\PeaceEmu.ico"
+Name: "{autodesktop}\PeaceEmu Dev"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app}\PeaceEmu.ico"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "Launch PeaceEmu"; Flags: postinstall nowait skipifsilent
@@ -101,8 +101,8 @@ var
 begin
   if (CurUninstallStep = usPostUninstall) and RemoveUserSettings then
   begin
-    RoamingDir := ExpandConstant('{userappdata}\PeaceEmu');
-    LocalDir := ExpandConstant('{localappdata}\PeaceEmu');
+    RoamingDir := ExpandConstant('{userappdata}\PeaceEmu-Dev');
+    LocalDir := ExpandConstant('{localappdata}\PeaceEmu-Dev');
 
     { Delete only the known preferences file and known log/cache folders.
       Never recursively remove the user's entire application-data directory. }
