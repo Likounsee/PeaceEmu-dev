@@ -385,9 +385,7 @@ impl DesktopApp {
         }
 
         ui.columns(3, |brand_columns| {
-            for (brand_index, brand_name) in
-                ["Nintendo", "Xbox", "PlayStation"].iter().enumerate()
-            {
+            for (brand_index, brand_name) in ["Nintendo", "Xbox", "PlayStation"].iter().enumerate() {
                 let ui = &mut brand_columns[brand_index];
                 ui.label(egui::RichText::new(*brand_name).strong().size(16.0));
                 ui.separator();
@@ -405,183 +403,183 @@ impl DesktopApp {
                     });
                 }
                 for id in grouped_modules[brand_index].iter().cloned() {
-            let Ok(module_id) = ModuleId::new(id.clone()) else {
-                continue;
-            };
-            let is_bundled = registered.contains(&id);
-            let nes_executable = if id == "nes" {
-                nes_module_manager::installed_executable_path()
-            } else {
-                None
-            };
-            let installed_version = if id == "nes" {
-                nes_executable
-                    .as_ref()
-                    .and_then(|path| version_from_installed_path(path))
-            } else {
-                state.installed_version(&module_id).map(str::to_owned)
-            };
-            let is_installed = is_bundled || installed_version.is_some();
-            let is_available = available_ids.contains(&id);
-            let display_name = module_display_name(&id);
+                let Ok(module_id) = ModuleId::new(id.clone()) else {
+                    continue;
+                };
+                let is_bundled = registered.contains(&id);
+                let nes_executable = if id == "nes" {
+                    nes_module_manager::installed_executable_path()
+                } else {
+                    None
+                };
+                let installed_version = if id == "nes" {
+                    nes_executable
+                        .as_ref()
+                        .and_then(|path| version_from_installed_path(path))
+                } else {
+                    state.installed_version(&module_id).map(str::to_owned)
+                };
+                let is_installed = is_bundled || installed_version.is_some();
+                let is_available = available_ids.contains(&id);
+                let display_name = module_display_name(&id);
 
-            theme::card(ui, &palette, |ui| {
-                ui.set_width(ui.available_width());
-                ui.horizontal_wrapped(|ui| {
-                    module_tile(ui, &palette, &display_name);
-                    ui.vertical(|ui| {
-                        ui.label(egui::RichText::new(&display_name).size(16.0).strong());
-                        ui.label(
-                            egui::RichText::new(if id == "nes" {
-                                "Nintendo Entertainment System"
-                            } else {
-                                id.as_str()
-                            })
-                            .size(12.0)
-                            .color(palette.text_dim),
-                        );
-                        ui.horizontal_wrapped(|ui| {
-                            if is_installed {
-                                status_badge(
-                                    ui,
-                                    if french { "Installé" } else { "Installed" },
-                                    palette.success,
-                                );
-                            } else if is_available {
-                                status_badge(
-                                    ui,
-                                    if french { "Disponible" } else { "Available" },
-                                    palette.accent,
-                                );
-                            } else {
+                theme::card(ui, &palette, |ui| {
+                    ui.set_width(ui.available_width());
+                    ui.horizontal_wrapped(|ui| {
+                        module_tile(ui, &palette, &display_name);
+                        ui.vertical(|ui| {
+                            ui.label(egui::RichText::new(&display_name).size(16.0).strong());
+                            ui.label(
+                                egui::RichText::new(if id == "nes" {
+                                    "Nintendo Entertainment System"
+                                } else {
+                                    id.as_str()
+                                })
+                                .size(12.0)
+                                .color(palette.text_dim),
+                            );
+                            ui.horizontal_wrapped(|ui| {
+                                if is_installed {
+                                    status_badge(
+                                        ui,
+                                        if french { "Installé" } else { "Installed" },
+                                        palette.success,
+                                    );
+                                } else if is_available {
+                                    status_badge(
+                                        ui,
+                                        if french { "Disponible" } else { "Available" },
+                                        palette.accent,
+                                    );
+                                } else {
+                                    status_badge(
+                                        ui,
+                                        if french {
+                                            "Indisponible"
+                                        } else {
+                                            "Unavailable"
+                                        },
+                                        palette.warning,
+                                    );
+                                }
+                                if is_bundled {
+                                    status_badge(
+                                        ui,
+                                        if french { "Inclus" } else { "Built in" },
+                                        palette.accent,
+                                    );
+                                }
+                                if let Some(version) = installed_version.as_deref() {
+                                    status_badge(ui, &format!("v{version}"), palette.success);
+                                }
+                            });
+                        });
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if id == "nes" {
+                                if is_installed
+                                    && ui
+                                        .add_enabled(
+                                            !self.nes_installing && !self.nes_uninstalling,
+                                            egui::Button::new(if french {
+                                                "Désinstaller"
+                                            } else {
+                                                "Uninstall"
+                                            }),
+                                        )
+                                        .clicked()
+                                {
+                                    self.nes_uninstall_confirm_open = true;
+                                }
+                                let label = if self.nes_installing {
+                                    if french {
+                                        "Installation…"
+                                    } else {
+                                        "Installing…"
+                                    }
+                                } else if self.nes_uninstalling {
+                                    if french {
+                                        "Désinstallation…"
+                                    } else {
+                                        "Uninstalling…"
+                                    }
+                                } else if is_installed {
+                                    if french {
+                                        "Mettre à jour"
+                                    } else {
+                                        "Update"
+                                    }
+                                } else if is_available {
+                                    if french {
+                                        "Installer"
+                                    } else {
+                                        "Install"
+                                    }
+                                } else if french {
+                                    "Non disponible"
+                                } else {
+                                    "Unavailable"
+                                };
+                                let can_install =
+                                    is_available && !self.nes_installing && !self.nes_uninstalling;
+                                if ui
+                                    .add_enabled(can_install, egui::Button::new(label))
+                                    .clicked()
+                                {
+                                    self.start_nes_module_install();
+                                }
+                            } else if is_bundled {
                                 status_badge(
                                     ui,
                                     if french {
-                                        "Indisponible"
+                                        "Prêt à l’emploi"
                                     } else {
-                                        "Unavailable"
+                                        "Ready to use"
                                     },
-                                    palette.warning,
+                                    palette.success,
                                 );
-                            }
-                            if is_bundled {
-                                status_badge(
-                                    ui,
-                                    if french { "Inclus" } else { "Built in" },
-                                    palette.accent,
-                                );
-                            }
-                            if let Some(version) = installed_version.as_deref() {
-                                status_badge(ui, &format!("v{version}"), palette.success);
                             }
                         });
                     });
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if id == "nes" {
-                            if is_installed
-                                && ui
-                                    .add_enabled(
-                                        !self.nes_installing && !self.nes_uninstalling,
-                                        egui::Button::new(if french {
-                                            "Désinstaller"
-                                        } else {
-                                            "Uninstall"
-                                        }),
-                                    )
-                                    .clicked()
-                            {
-                                self.nes_uninstall_confirm_open = true;
-                            }
-                            let label = if self.nes_installing {
-                                if french {
-                                    "Installation…"
-                                } else {
-                                    "Installing…"
-                                }
-                            } else if self.nes_uninstalling {
-                                if french {
-                                    "Désinstallation…"
-                                } else {
-                                    "Uninstalling…"
-                                }
-                            } else if is_installed {
-                                if french {
-                                    "Mettre à jour"
-                                } else {
-                                    "Update"
-                                }
-                            } else if is_available {
-                                if french {
-                                    "Installer"
-                                } else {
-                                    "Install"
-                                }
-                            } else if french {
-                                "Non disponible"
-                            } else {
-                                "Unavailable"
-                            };
-                            let can_install =
-                                is_available && !self.nes_installing && !self.nes_uninstalling;
-                            if ui
-                                .add_enabled(can_install, egui::Button::new(label))
-                                .clicked()
-                            {
-                                self.start_nes_module_install();
-                            }
-                        } else if is_bundled {
-                            status_badge(
-                                ui,
-                                if french {
-                                    "Prêt à l’emploi"
-                                } else {
-                                    "Ready to use"
-                                },
-                                palette.success,
-                            );
-                        }
-                    });
-                });
 
-                if let Some(descriptor) = self
-                    .registry
-                    .system_ids()
-                    .find(|system_id| system_id.as_str() == id)
-                    .and_then(|system_id| self.registry.registered_descriptor(system_id))
-                {
-                    let caps = descriptor.capabilities;
-                    ui.add_space(6.0);
-                    ui.horizontal_wrapped(|ui| {
-                        for (label, enabled) in [
-                            (
-                                if french { "Contenu" } else { "Content" },
-                                caps.content_loading,
-                            ),
-                            (if french { "Entrées" } else { "Input" }, caps.input),
-                            (if french { "Vidéo" } else { "Video" }, caps.video_output),
-                            ("Audio", caps.audio_output),
-                            (
-                                if french { "États" } else { "Save states" },
-                                caps.save_states,
-                            ),
-                            (
-                                if french { "Sauvegardes" } else { "Saves" },
-                                caps.persistent_saves,
-                            ),
-                        ] {
-                            status_badge(
-                                ui,
-                                &format!("{} {label}", if enabled { "●" } else { "○" }),
-                                if enabled {
-                                    palette.success
-                                } else {
-                                    palette.text_dim
-                                },
-                            );
-                        }
-                    });
-                }
-            });
+                    if let Some(descriptor) = self
+                        .registry
+                        .system_ids()
+                        .find(|system_id| system_id.as_str() == id)
+                        .and_then(|system_id| self.registry.registered_descriptor(system_id))
+                    {
+                        let caps = descriptor.capabilities;
+                        ui.add_space(6.0);
+                        ui.horizontal_wrapped(|ui| {
+                            for (label, enabled) in [
+                                (
+                                    if french { "Contenu" } else { "Content" },
+                                    caps.content_loading,
+                                ),
+                                (if french { "Entrées" } else { "Input" }, caps.input),
+                                (if french { "Vidéo" } else { "Video" }, caps.video_output),
+                                ("Audio", caps.audio_output),
+                                (
+                                    if french { "États" } else { "Save states" },
+                                    caps.save_states,
+                                ),
+                                (
+                                    if french { "Sauvegardes" } else { "Saves" },
+                                    caps.persistent_saves,
+                                ),
+                            ] {
+                                status_badge(
+                                    ui,
+                                    &format!("{} {label}", if enabled { "●" } else { "○" }),
+                                    if enabled {
+                                        palette.success
+                                    } else {
+                                        palette.text_dim
+                                    },
+                                );
+                            }
+                        });
+                    }
+                });
                 }
             }
         });
