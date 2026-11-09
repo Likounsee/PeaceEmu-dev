@@ -28,6 +28,17 @@ fn status_badge(ui: &mut egui::Ui, text: &str, color: egui::Color32) {
     theme::badge(ui, text, color);
 }
 
+fn module_brand_index(id: &str) -> usize {
+    let normalized = id.to_ascii_lowercase();
+    if normalized.starts_with("xbox") {
+        1
+    } else if normalized.starts_with("playstation") || normalized.starts_with("ps") {
+        2
+    } else {
+        0
+    }
+}
+
 fn module_display_name(id: &str) -> String {
     match id {
         "nes" => "Nintendo (NES)".to_owned(),
@@ -66,20 +77,10 @@ fn persist_nes_install_state(version: Option<&str>) -> Result<(), String> {
 
     if let Some(version) = version {
         state
-            .record_installed(id.clone(), version.to_owned())
+            .record_installed(id, version.to_owned())
             .map_err(|error| error.to_string())?;
-        let mut selected = state.selected_modules().to_vec();
-        selected.push(id);
-        state.set_selection(selected);
     } else {
         state.record_uninstalled(&id);
-        let selected = state
-            .selected_modules()
-            .iter()
-            .filter(|selected| *selected != &id)
-            .cloned()
-            .collect::<Vec<_>>();
-        state.set_selection(selected);
     }
     store.save(&state).map_err(|error| error.to_string())
 }
@@ -94,10 +95,28 @@ fn version_from_installed_path(path: &std::path::Path) -> Option<String> {
 
 impl DesktopApp {
     pub(super) fn show_systems(&mut self, ui: &mut egui::Ui) {
+        if let Some(receiver) = self.nes_install_progress_receiver.take() {
+            let mut keep_receiver = true;
+            loop {
+                match receiver.try_recv() {
+                    Ok(progress) => self.nes_install_progress = Some(progress),
+                    Err(std::sync::mpsc::TryRecvError::Empty) => break,
+                    Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                        keep_receiver = false;
+                        break;
+                    }
+                }
+            }
+            if keep_receiver {
+                self.nes_install_progress_receiver = Some(receiver);
+            }
+        }
+
         if let Some(receiver) = self.nes_install_receiver.take() {
             match receiver.try_recv() {
                 Ok(Ok(path)) => {
                     self.nes_installing = false;
+                    self.nes_install_progress_receiver = None;
                     let persisted = version_from_installed_path(&path)
                         .ok_or_else(|| "version du paquet installé introuvable".to_owned())
                         .and_then(|version| persist_nes_install_state(Some(&version)));
@@ -116,6 +135,8 @@ impl DesktopApp {
                 }
                 Ok(Err(error)) => {
                     self.nes_installing = false;
+                    self.nes_install_progress_receiver = None;
+                    self.nes_install_progress = None;
                     self.message = if self.language == "fr" {
                         format!("Échec de l’installation de Nintendo (NES) : {error}")
                     } else {
@@ -127,6 +148,8 @@ impl DesktopApp {
                 }
                 Err(std::sync::mpsc::TryRecvError::Disconnected) => {
                     self.nes_installing = false;
+                    self.nes_install_progress_receiver = None;
+                    self.nes_install_progress = None;
                     self.message = if self.language == "fr" {
                         "Le téléchargement du module Nintendo (NES) s’est interrompu.".to_owned()
                     } else {
@@ -247,12 +270,49 @@ impl DesktopApp {
             &palette,
             self.language_pack.text("ui.systems_page.001"),
             if french {
-                "Installez un module pour ajouter sa console. L’installation l’active automatiquement."
+                "Installez une console : elle sera ajoutée directement à PeaceEmu et prête à être utilisée."
             } else {
-                "Install a module to add its console. Installing it makes it ready to use."
+                "Install a console to add it directly to PeaceEmu, ready to use."
             },
             |_| {},
         );
+
+        if let Some(progress) = self.nes_install_progress.as_ref() {
+            let stage = match (french, progress.stage) {
+                (true, "prepare") => "Préparation",
+                (true, "catalogue") => "Récupération des informations",
+                (true, "download") => "Téléchargement",
+                (true, "verify") => "Vérification de l’intégrité",
+                (true, "extract_skipped") => "Décompression : non nécessaire",
+                (true, "install") => "Installation des fichiers",
+                (true, "finalize") => "Finalisation",
+                (true, "done") => "Installation terminée",
+                (false, "prepare") => "Preparing",
+                (false, "catalogue") => "Fetching release information",
+                (false, "download") => "Downloading",
+                (false, "verify") => "Integrity verification",
+                (false, "extract_skipped") => "Extraction: not required",
+                (false, "install") => "Installing files",
+                (false, "finalize") => "Finalizing",
+                (false, "done") => "Installation complete",
+                (true, _) => "En cours",
+                (false, _) => "In progress",
+            };
+            theme::card(ui, &palette, |ui| {
+                ui.set_width(ui.available_width());
+                ui.horizontal(|ui| {
+                    ui.label(egui::RichText::new(if french { "Installation de Nintendo (NES)" } else { "Nintendo (NES) installation" }).strong());
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        ui.label(egui::RichText::new(format!("{}%", progress.percent)).strong());
+                    });
+                });
+                ui.add(egui::ProgressBar::new(progress.percent as f32 / 100.0).show_percentage());
+                ui.label(egui::RichText::new(stage).color(palette.text_dim));
+                if !progress.detail.is_empty() {
+                    ui.label(egui::RichText::new(&progress.detail).size(11.0).color(palette.text_dim));
+                }
+            });
+        }
 
         let columns = if ui.available_width() < 620.0 { 1 } else { 3 };
         ui.columns(columns, |cols| {
@@ -308,21 +368,27 @@ impl DesktopApp {
         ui.label(egui::RichText::new("MODULES").strong().size(13.0));
         ui.separator();
 
-        if module_ids.is_empty() {
-            theme::card(ui, &palette, |ui| {
-                ui.set_width(ui.available_width());
-                ui.label(
-                    egui::RichText::new(if french {
-                        "Aucun module n’est disponible pour cette plateforme."
-                    } else {
-                        "No modules are available for this platform."
-                    })
-                    .color(palette.text_dim),
-                );
-            });
+        let mut grouped_modules: [Vec<String>; 3] = [Vec::new(), Vec::new(), Vec::new()];
+        for id in module_ids {
+            grouped_modules[module_brand_index(&id)].push(id);
         }
 
-        for id in module_ids {
+        ui.columns(3, |brand_columns| {
+            for (brand_index, brand_name) in ["Nintendo", "Xbox", "PlayStation"].iter().enumerate() {
+                let ui = &mut brand_columns[brand_index];
+                ui.label(egui::RichText::new(*brand_name).strong().size(16.0));
+                ui.separator();
+                if grouped_modules[brand_index].is_empty() {
+                    theme::card(ui, &palette, |ui| {
+                        ui.set_width(ui.available_width());
+                        ui.label(egui::RichText::new(if french {
+                            "Aucune console disponible pour le moment."
+                        } else {
+                            "No console available yet."
+                        }).color(palette.text_dim));
+                    });
+                }
+                for id in grouped_modules[brand_index].iter().cloned() {
             let Ok(module_id) = ModuleId::new(id.clone()) else {
                 continue;
             };
@@ -500,7 +566,9 @@ impl DesktopApp {
                     });
                 }
             });
-        }
+                }
+            }
+        });
 
         let mut confirm_uninstall = false;
         let mut close_confirmation = false;
