@@ -290,7 +290,19 @@ impl DesktopApp {
 
             theme::card(ui, &palette, |ui| {
                 ui.set_width(ui.available_width());
-                render_dev_journal(ui, &palette, include_str!("../../../dev-actu.md"));
+                let journal = dev_journal::read_cached();
+                if journal.is_empty() {
+                    ui.label(
+                        egui::RichText::new(if french {
+                            "Le journal de développement sera disponible dès qu’une connexion sera établie."
+                        } else {
+                            "The development journal will appear once a connection is available."
+                        })
+                        .color(palette.text_dim),
+                    );
+                } else {
+                    render_dev_journal(ui, &palette, &journal);
+                }
             });
         }
 
