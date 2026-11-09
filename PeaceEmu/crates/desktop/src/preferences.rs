@@ -19,6 +19,7 @@ pub(crate) struct SavedPreferences {
     pub(crate) paths: Vec<PathBuf>,
     pub(crate) language: String,
     pub(crate) turbo_speed: f32,
+    pub(crate) turbo_mute_audio: bool,
 }
 
 pub(crate) fn config_file_path() -> Option<PathBuf> {
@@ -147,9 +148,10 @@ fn parse_preferences(contents: &str) -> std::io::Result<SavedPreferences> {
     let mut seen_paths = HashSet::new();
     let mut language = system_language();
     let mut turbo_speed = 4.0_f32;
+    let mut turbo_mute_audio = false;
     for line in contents.lines() {
         if let Some(value) = line.strip_prefix("version=") {
-            if value != "1" && value != "2" && value != "3" {
+            if value != "1" && value != "2" && value != "3" && value != "4" {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
                     format!("unsupported preferences version: {value}"),
@@ -183,6 +185,12 @@ fn parse_preferences(contents: &str) -> std::io::Result<SavedPreferences> {
                     turbo_speed = parsed.clamp(0.5, 4.0);
                 }
             }
+        } else if let Some(value) = line.strip_prefix("turbo_mute_audio=") {
+            match value {
+                "true" => turbo_mute_audio = true,
+                "false" => turbo_mute_audio = false,
+                _ => {}
+            }
         } else if let Some(value) = line.strip_prefix("language=") {
             language = if value.eq_ignore_ascii_case("fr") {
                 "fr"
@@ -209,6 +217,7 @@ fn parse_preferences(contents: &str) -> std::io::Result<SavedPreferences> {
         paths,
         language,
         turbo_speed,
+        turbo_mute_audio,
     })
 }
 
@@ -246,6 +255,21 @@ pub(crate) fn write_preferences_with_language_and_turbo(
     turbo_speed: f32,
     paths: &[PathBuf],
 ) -> std::io::Result<()> {
+    write_preferences_with_language_turbo_and_audio(
+        path, dark_mode, ui_scale, accent_rgb, language, turbo_speed, false, paths,
+    )
+}
+
+pub(crate) fn write_preferences_with_language_turbo_and_audio(
+    path: &Path,
+    dark_mode: bool,
+    ui_scale: f32,
+    accent_rgb: [u8; 3],
+    language: &str,
+    turbo_speed: f32,
+    turbo_mute_audio: bool,
+    paths: &[PathBuf],
+) -> std::io::Result<()> {
     let parent = path.parent().ok_or_else(|| {
         std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
@@ -278,7 +302,7 @@ pub(crate) fn write_preferences_with_language_and_turbo(
         "en"
     };
     let mut contents = format!(
-        "version=3\ndark={dark_mode}\nscale={ui_scale:.3}\naccent={:02X}{:02X}{:02X}\nlanguage={}\nturbo_speed={turbo_speed:.1}\n",
+        "version=4\ndark={dark_mode}\nscale={ui_scale:.3}\naccent={:02X}{:02X}{:02X}\nlanguage={}\nturbo_speed={turbo_speed:.1}\nturbo_mute_audio={turbo_mute_audio}\n",
         accent_rgb[0], accent_rgb[1], accent_rgb[2], language
     );
     for path in paths {
