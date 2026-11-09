@@ -276,7 +276,7 @@ fn persist_checksum(directory: &std::path::Path, expected: &str) -> Result<(), S
             .map_err(|error| format!("Could not replace NES module checksum: {error}"))?;
     }
     fs::rename(&temporary_path, &checksum_path)
-        .map_err(|error| format!("Could not activate NES module checksum: {error}"))?;
+        .map_err(|error| format!("Could not finalize NES module checksum: {error}"))?;
     Ok(())
 }
 /// Downloads the newest published module release, verifies its SHA-256 sidecar,
@@ -449,7 +449,7 @@ pub(crate) fn install_latest(mut report: impl FnMut(InstallProgress)) -> Result<
                 .map_err(|error| format!("Could not replace damaged NES module: {error}"))?;
         }
         fs::rename(&staging, &final_path)
-            .map_err(|error| format!("Could not activate NES module: {error}"))?;
+            .map_err(|error| format!("Could not complete NES module installation: {error}"))?;
         Ok(final_path.clone())
     })();
     if result.is_err() {
