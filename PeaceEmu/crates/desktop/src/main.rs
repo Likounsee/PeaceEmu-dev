@@ -660,6 +660,8 @@ impl DesktopApp {
         if self.nes_installing || self.nes_uninstalling {
             return;
         }
+        self.nes_install_progress = None;
+        self.nes_install_progress_receiver = None;
         let (sender, receiver) = mpsc::channel();
         self.nes_uninstall_receiver = Some(receiver);
         self.nes_uninstalling = true;
