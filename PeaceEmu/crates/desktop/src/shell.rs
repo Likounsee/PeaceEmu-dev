@@ -64,6 +64,7 @@ impl DesktopApp {
                     for page in [
                         DesktopPage::Home,
                         DesktopPage::Library,
+                        DesktopPage::Game,
                         DesktopPage::Sessions,
                         DesktopPage::Systems,
                     ] {
