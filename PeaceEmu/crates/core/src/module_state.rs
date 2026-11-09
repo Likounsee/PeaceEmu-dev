@@ -5,7 +5,7 @@
 //!
 //! The application layer is responsible for storing this model transactionally.
 //! Updating this in-memory state must happen only after a package has been
-//! verified and atomically activated on disk.
+//! verified and installed on disk.
 
 use core::fmt;
 
@@ -19,7 +19,7 @@ pub enum FirstLaunchStatus {
     NotStarted,
     /// The user explicitly chose to skip setup and configure modules later.
     Skipped,
-    /// The user completed the selection/review flow.
+    /// The user completed the setup flow.
     Completed,
 }
 
@@ -36,7 +36,6 @@ pub struct InstalledModule {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct ModuleManagerState {
     first_launch_status: FirstLaunchStatus,
-    selected_modules: Vec<ModuleId>,
     installed_modules: Vec<InstalledModule>,
 }
 
@@ -78,27 +77,9 @@ impl ModuleManagerState {
         self.first_launch_status
     }
 
-    /// Returns the currently selected module IDs in user-selected order.
-    pub fn selected_modules(&self) -> &[ModuleId] {
-        &self.selected_modules
-    }
-
     /// Returns successfully installed modules in activation order.
     pub fn installed_modules(&self) -> &[InstalledModule] {
         &self.installed_modules
-    }
-
-    /// Replaces the selected modules, preserving first occurrence and order.
-    ///
-    /// This records user intent only. The catalogue and dependency planner must
-    /// validate the selection before the application starts installation.
-    pub fn set_selection(&mut self, selected: impl IntoIterator<Item = ModuleId>) {
-        self.selected_modules.clear();
-        for id in selected {
-            if !self.selected_modules.contains(&id) {
-                self.selected_modules.push(id);
-            }
-        }
     }
 
     /// Records that the user explicitly skipped first-launch setup.
@@ -106,7 +87,7 @@ impl ModuleManagerState {
         self.first_launch_status = FirstLaunchStatus::Skipped;
     }
 
-    /// Records that the user completed the setup selection/review flow.
+    /// Records that the user completed the setup flow.
     ///
     /// This does not mean every requested package installed successfully.
     pub fn mark_setup_completed(&mut self) {
@@ -126,7 +107,7 @@ impl ModuleManagerState {
             .map(|module| module.version.as_str())
     }
 
-    /// Records a verified and activated package version.
+    /// Records a verified and installed package version.
     ///
     /// An existing record for the same module is updated in place, preserving
     /// the module's order in the installed list.
@@ -151,12 +132,12 @@ impl ModuleManagerState {
         Ok(())
     }
 
-    /// Records several verified and activated package versions as one in-memory operation.
+    /// Records several verified and installed package versions as one in-memory operation.
     ///
     /// All input is validated before the state changes: an empty version or duplicate
     /// module ID leaves the complete installed-module list untouched. Existing records
     /// retain their position; new records are appended in input order. The caller must
-    /// activate every package on disk before invoking this method.
+    /// finish installing every package on disk before invoking this method.
     pub fn record_installed_batch(
         &mut self,
         packages: impl IntoIterator<Item = (ModuleId, String)>,
@@ -238,13 +219,6 @@ mod tests {
         state.mark_setup_completed();
         assert!(!state.should_show_first_launch());
         assert_eq!(state.first_launch_status(), FirstLaunchStatus::Completed);
-    }
-
-    #[test]
-    fn selection_deduplicates_ids_without_reordering_them() {
-        let mut state = ModuleManagerState::new();
-        state.set_selection([id("game-boy"), id("nes"), id("game-boy")]);
-        assert_eq!(state.selected_modules(), &[id("game-boy"), id("nes")]);
     }
 
     #[test]
