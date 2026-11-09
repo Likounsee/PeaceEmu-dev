@@ -1584,7 +1584,9 @@ impl DesktopApp {
     }
 
     fn quick_save_state(&mut self, id: SessionId) {
-        if !SAVE_STATES_ENABLED { return; }
+        if !SAVE_STATES_ENABLED {
+            return;
+        }
         let is_running = self
             .controller
             .session_summary(id)
@@ -1602,7 +1604,9 @@ impl DesktopApp {
     }
 
     fn quick_load_state(&mut self, id: SessionId) {
-        if !SAVE_STATES_ENABLED { return; }
+        if !SAVE_STATES_ENABLED {
+            return;
+        }
         let is_running = self
             .controller
             .session_summary(id)
@@ -1622,7 +1626,9 @@ impl DesktopApp {
     }
 
     fn load_state_action(&mut self, id: SessionId) {
-        if !SAVE_STATES_ENABLED { return; }
+        if !SAVE_STATES_ENABLED {
+            return;
+        }
         let path = match self.save_state_path(id) {
             Ok(path) => path,
             Err(error) => {
@@ -2289,8 +2295,8 @@ impl DesktopApp {
                         match key {
                             egui::Key::F1 if pressed => reset_requested = true,
                             egui::Key::P if pressed => toggle_pause_requested = true,
-                            egui::Key::F5 if pressed => quick_save_requested = true,
-                            egui::Key::F8 if pressed => quick_load_requested = true,
+                            egui::Key::F5 if pressed && SAVE_STATES_ENABLED => quick_save_requested = true,
+                            egui::Key::F8 if pressed && SAVE_STATES_ENABLED => quick_load_requested = true,
                             egui::Key::Tab => turbo_change = Some(pressed),
                             _ => {
                                 if let Some(control) = self.control_for_active_session(key) {
