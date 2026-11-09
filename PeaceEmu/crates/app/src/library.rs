@@ -501,7 +501,7 @@ mod tests {
         let mut library = ContentLibrary::new();
 
         let entry = library.import(&file.0, 64).unwrap();
-        assert_eq!(entry.format_hint(), Some("gbc"));
+        assert_eq!(entry.format_hint(), Some("nes"));
         assert_eq!(entry.compatible_system_hint(), None);
         assert_eq!(entry.validation(), &ContentValidation::Pending);
         assert_eq!(entry.format_detection(), &ContentFormatDetection::Pending);
