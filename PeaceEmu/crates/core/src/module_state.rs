@@ -77,7 +77,7 @@ impl ModuleManagerState {
         self.first_launch_status
     }
 
-    /// Returns successfully installed modules in activation order.
+    /// Returns successfully installed modules in installation order.
     pub fn installed_modules(&self) -> &[InstalledModule] {
         &self.installed_modules
     }
