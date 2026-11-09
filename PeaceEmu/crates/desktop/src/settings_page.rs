@@ -294,30 +294,6 @@ impl DesktopApp {
             );
         });
 
-        // ---------------------------------------------------------- Core settings
-        section_heading(
-            ui,
-            &palette,
-            self.language_pack.text("ui.settings_page.017"),
-            self.language_pack.text("ui.settings_page.018"),
-        );
-        theme::card(ui, &palette, |ui| {
-            ui.set_width(ui.available_width());
-            ui.horizontal_wrapped(|ui| {
-                theme::badge(
-                    ui,
-                    self.language_pack.text("ui.settings_page.019"),
-                    palette.text_dim,
-                );
-                ui.label(self.language_pack.text("ui.settings_page.020"));
-            });
-            ui.label(
-                egui::RichText::new(self.language_pack.text("ui.settings_page.021"))
-                    .size(13.0)
-                    .color(palette.text_dim),
-            );
-        });
-
         // ----------------------------------------------------------- Diagnostics
         section_heading(
             ui,
