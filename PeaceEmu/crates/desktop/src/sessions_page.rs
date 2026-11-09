@@ -515,10 +515,16 @@ impl DesktopApp {
                         .show_value(false);
                     turbo_speed_changed = ui.add(slider).changed();
                     ui.label(egui::RichText::new(format!("{:.1}×", next_turbo_speed)).strong());
-                    mute_audio_changed = ui.checkbox(
-                        &mut next_mute_audio,
-                        if french { "Couper le son en turbo" } else { "Mute audio during turbo" },
-                    ).changed();
+                    mute_audio_changed = ui
+                        .checkbox(
+                            &mut next_mute_audio,
+                            if french {
+                                "Couper le son en turbo"
+                            } else {
+                                "Mute audio during turbo"
+                            },
+                        )
+                        .changed();
                 });
                 ui.label(
                     egui::RichText::new(if french {
